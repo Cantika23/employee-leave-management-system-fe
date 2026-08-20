@@ -1,0 +1,151 @@
+.auth {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+}
+
+.auth__showcase {
+  background:
+    radial-gradient(700px 360px at 20% 20%, rgba(125, 211, 252, 0.35), transparent 60%),
+    linear-gradient(165deg, #082f49 0%, #0369a1 52%, #0ea5e9 100%);
+  color: white;
+  padding: 36px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth__showcase::after {
+  content: '';
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  right: -120px;
+  bottom: -80px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.auth__showcase h2 {
+  font-size: clamp(2rem, 3vw, 3rem);
+  letter-spacing: -0.05em;
+  max-width: 460px;
+  margin-top: 48px;
+}
+
+.auth__showcase p {
+  margin-top: 16px;
+  max-width: 420px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.auth-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.auth-stats div {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 14px;
+  backdrop-filter: blur(10px);
+}
+
+.auth-stats strong {
+  display: block;
+  font-size: 1.3rem;
+}
+
+.auth__panel {
+  display: grid;
+  place-items: center;
+  padding: 32px 24px;
+  background: #f7fcff;
+}
+
+.auth-card {
+  width: min(440px, 100%);
+  background: white;
+  border: 1px solid var(--sky-100);
+  border-radius: 24px;
+  padding: 32px 28px;
+  box-shadow: var(--shadow);
+}
+
+.auth-card h1 {
+  font-size: 1.7rem;
+  letter-spacing: -0.04em;
+  margin: 16px 0 6px;
+  color: var(--navy);
+}
+
+.auth-card form {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.auth-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.demo-box {
+  margin-top: 18px;
+  background: var(--sky-50);
+  border: 1px dashed var(--sky-200);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 0.82rem;
+  color: var(--sky-900);
+}
+
+.demo-box button {
+  border: 0;
+  background: transparent;
+  color: var(--sky-700);
+  font-weight: 800;
+  padding: 0;
+}
+
+.auth-foot {
+  margin-top: 18px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.auth-foot a {
+  color: var(--sky-700);
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .auth {
+    grid-template-columns: 1fr;
+  }
+
+  .auth__showcase {
+    min-height: 280px;
+    padding: 24px;
+  }
+
+  .auth-stats {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}

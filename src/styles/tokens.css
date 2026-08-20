@@ -1,0 +1,45 @@
+:root {
+  --sky-950: #082f49;
+  --sky-900: #0c4a6e;
+  --sky-800: #075985;
+  --sky-700: #0369a1;
+  --sky-600: #0284c7;
+  --sky-500: #0ea5e9;
+  --sky-400: #38bdf8;
+  --sky-300: #7dd3fc;
+  --sky-200: #bae6fd;
+  --sky-100: #e0f2fe;
+  --sky-50: #f0f9ff;
+
+  --navy: #0b1f33;
+  --ink: #123047;
+  --muted: #5b7388;
+  --line: #d7ebf7;
+  --white: #ffffff;
+  --canvas: #f5fbff;
+  --success: #0f9f6e;
+  --success-soft: #ecfdf5;
+  --warning: #d97706;
+  --warning-soft: #fffbeb;
+  --danger: #e11d48;
+  --danger-soft: #fff1f2;
+
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --radius-full: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(8, 47, 73, 0.05);
+  --shadow: 0 10px 30px rgba(8, 47, 73, 0.08);
+  --shadow-lg: 0 24px 60px rgba(8, 47, 73, 0.12);
+  --shadow-sky: 0 12px 32px rgba(14, 165, 233, 0.28);
+
+  --nav-h: 76px;
+  --sidebar: 272px;
+  --topbar: 72px;
+
+  --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
