@@ -1,18 +1,32 @@
-import { useMemo, useState } from 'react'
-import { EMPLOYEES } from '../data/mock'
+import { useEffect, useMemo, useState } from 'react'
+import api from '../api/axios'
+import { useToast } from '../context/ToastContext'
 import { initials, statusLabel } from '../lib/format'
 
 export default function Employees() {
+  const { push } = useToast()
   const [query, setQuery] = useState('')
   const [dept, setDept] = useState('all')
-  const departments = ['all', ...new Set(EMPLOYEES.map((item) => item.dept))]
+  const [employees, setEmployees] = useState([])
+
+  useEffect(() => {
+    api
+      .get('/employees')
+      .then((res) => setEmployees(res.data))
+      .catch(() => push('Gagal memuat direktori karyawan.', 'error'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const departments = ['all', ...new Set(employees.map((item) => item.dept))]
 
   const rows = useMemo(
     () =>
-      EMPLOYEES.filter((item) => (dept === 'all' ? true : item.dept === dept)).filter((item) =>
-        `${item.name} ${item.id} ${item.title}`.toLowerCase().includes(query.toLowerCase()),
-      ),
-    [query, dept],
+      employees
+        .filter((item) => (dept === 'all' ? true : item.dept === dept))
+        .filter((item) =>
+          `${item.name} ${item.id} ${item.title}`.toLowerCase().includes(query.toLowerCase()),
+        ),
+    [employees, query, dept],
   )
 
   return (

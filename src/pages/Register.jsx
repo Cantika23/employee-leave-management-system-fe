@@ -15,11 +15,18 @@ export default function Register() {
     password: '',
   })
 
-  function onSubmit(event) {
+  const [error, setError] = useState('')
+
+  async function onSubmit(event) {
     event.preventDefault()
-    register(form)
-    push('Akun berhasil dibuat. Selamat datang di Aether Leave.')
-    navigate('/app')
+    setError('')
+    try {
+      await register(form)
+      push('Akun berhasil dibuat. Selamat datang di Aether Leave.')
+      navigate('/app')
+    } catch (err) {
+      setError(err.message)
+    }
   }
 
   return (
@@ -99,6 +106,7 @@ export default function Register() {
                 placeholder="Minimal 6 karakter"
               />
             </div>
+            {error && <p className="error-text">{error}</p>}
             <button className="btn btn-primary btn-block" type="submit">
               Lanjutkan ke dashboard
             </button>

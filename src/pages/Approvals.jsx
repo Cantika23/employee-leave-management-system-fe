@@ -1,16 +1,39 @@
-import { useState } from 'react'
-import { LEAVE_REQUESTS } from '../data/mock'
+import { useEffect, useState } from 'react'
+import api from '../api/axios'
 import { formatDate, initials } from '../lib/format'
 import { useToast } from '../context/ToastContext'
 
 export default function Approvals() {
   const { push } = useToast()
-  const [rows, setRows] = useState(LEAVE_REQUESTS)
-  const pending = rows.filter((item) => item.status === 'pending')
+  const [pending, setPending] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [decidingId, setDecidingId] = useState(null)
 
-  function decide(id, status) {
-    setRows((prev) => prev.map((item) => (item.id === id ? { ...item, status } : item)))
-    push(status === 'approved' ? 'Permohonan disetujui.' : 'Permohonan ditolak.')
+  useEffect(() => {
+    loadApprovals()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function loadApprovals() {
+    setLoading(true)
+    api
+      .get('/approvals')
+      .then((res) => setPending(res.data))
+      .catch(() => push('Gagal memuat daftar persetujuan.', 'error'))
+      .finally(() => setLoading(false))
+  }
+
+  async function decide(id, status) {
+    setDecidingId(id)
+    try {
+      await api.patch(`/leave-requests/${id}/decide`, { status })
+      setPending((prev) => prev.filter((item) => item.id !== id))
+      push(status === 'approved' ? 'Permohonan disetujui.' : 'Permohonan ditolak.')
+    } catch (err) {
+      push(err.response?.data?.message || 'Gagal memproses keputusan.', 'error')
+    } finally {
+      setDecidingId(null)
+    }
   }
 
   return (
@@ -22,7 +45,7 @@ export default function Approvals() {
         </div>
       </div>
 
-      {pending.length === 0 && (
+      {!loading && pending.length === 0 && (
         <div className="card empty">Tidak ada permohonan yang menunggu. Kalender tim sedang seimbang.</div>
       )}
 
@@ -59,10 +82,18 @@ export default function Approvals() {
             </div>
             <p style={{ marginBottom: 16 }}>{item.reason}</p>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button className="btn btn-success btn-sm" onClick={() => decide(item.id, 'approved')}>
+              <button
+                className="btn btn-success btn-sm"
+                disabled={decidingId === item.id}
+                onClick={() => decide(item.id, 'approved')}
+              >
                 Setujui
               </button>
-              <button className="btn btn-danger btn-sm" onClick={() => decide(item.id, 'rejected')}>
+              <button
+                className="btn btn-danger btn-sm"
+                disabled={decidingId === item.id}
+                onClick={() => decide(item.id, 'rejected')}
+              >
                 Tolak
               </button>
             </div>

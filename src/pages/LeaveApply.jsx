@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { LEAVE_TYPES } from '../data/mock'
+import { useEffect, useMemo, useState } from 'react'
+import api from '../api/axios'
 import { useToast } from '../context/ToastContext'
 
 function workdays(from, to) {
@@ -19,6 +19,9 @@ function workdays(from, to) {
 
 export default function LeaveApply() {
   const { push } = useToast()
+  const [leaveTypes, setLeaveTypes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState({
     type: 'annual',
     from: '2026-08-24',
@@ -27,12 +30,25 @@ export default function LeaveApply() {
     handover: '',
   })
 
-  const days = useMemo(() => workdays(form.from, form.to), [form.from, form.to])
-  const selected = LEAVE_TYPES.find((item) => item.id === form.type)
-  const remaining = selected.days - selected.used
+  useEffect(() => {
+    api
+      .get('/leave-types')
+      .then((res) => {
+        setLeaveTypes(res.data)
+        if (res.data.length) setForm((prev) => ({ ...prev, type: res.data[0].id }))
+      })
+      .catch(() => push('Gagal memuat jenis cuti.', 'error'))
+      .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  function onSubmit(event) {
+  const days = useMemo(() => workdays(form.from, form.to), [form.from, form.to])
+  const selected = leaveTypes.find((item) => item.id === form.type)
+  const remaining = selected ? selected.days - selected.used : 0
+
+  async function onSubmit(event) {
     event.preventDefault()
+    if (!selected) return
     if (days < 1) {
       push('Pilih rentang hari kerja yang valid.', 'error')
       return
@@ -41,8 +57,38 @@ export default function LeaveApply() {
       push('Durasi melebihi sisa kuota.', 'error')
       return
     }
-    push(`Permohonan ${selected.name} ${days} hari telah dikirim.`)
-    setForm((prev) => ({ ...prev, reason: '', handover: '' }))
+    setSubmitting(true)
+    try {
+      await api.post('/leave-requests', {
+        leave_type: form.type,
+        start_date: form.from,
+        end_date: form.to,
+        reason: form.reason,
+        handover: form.handover,
+      })
+      push(`Permohonan ${selected.name} ${days} hari telah dikirim.`)
+      setForm((prev) => ({ ...prev, reason: '', handover: '' }))
+      // Refresh kuota terbaru setelah pengajuan.
+      const res = await api.get('/leave-types')
+      setLeaveTypes(res.data)
+    } catch (err) {
+      push(err.response?.data?.message || 'Gagal mengirim permohonan.', 'error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div>
+        <div className="page-head">
+          <div>
+            <h1>Ajukan cuti</h1>
+            <p>Memuat data kuota...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -63,7 +109,7 @@ export default function LeaveApply() {
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value })}
             >
-              {LEAVE_TYPES.map((type) => (
+              {leaveTypes.map((type) => (
                 <option key={type.id} value={type.id}>
                   {type.name}
                 </option>
@@ -111,8 +157,8 @@ export default function LeaveApply() {
               onChange={(e) => setForm({ ...form, handover: e.target.value })}
             />
           </div>
-          <button className="btn btn-primary" type="submit">
-            Kirim permohonan
+          <button className="btn btn-primary" type="submit" disabled={submitting}>
+            {submitting ? 'Mengirim...' : 'Kirim permohonan'}
           </button>
         </form>
 
@@ -122,7 +168,7 @@ export default function LeaveApply() {
             <div className="list-soft" style={{ marginTop: 14 }}>
               <article>
                 <span>Jenis</span>
-                <strong>{selected.name}</strong>
+                <strong>{selected?.name}</strong>
               </article>
               <article>
                 <span>Hari kerja</span>
@@ -140,7 +186,7 @@ export default function LeaveApply() {
           <section className="card panel">
             <h2 style={{ fontSize: '1.05rem' }}>Kuota Anda</h2>
             <div className="bars" style={{ marginTop: 14 }}>
-              {LEAVE_TYPES.map((type) => (
+              {leaveTypes.map((type) => (
                 <div key={type.id}>
                   <div className="bar-row">
                     <span>{type.name.replace('Cuti ', '')}</span>

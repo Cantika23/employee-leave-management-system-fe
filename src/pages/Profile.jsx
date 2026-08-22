@@ -1,22 +1,35 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
-import { LEAVE_TYPES } from '../data/mock'
 import { initials } from '../lib/format'
 
 export default function Profile() {
   const { user, updateUser } = useAuth()
   const { push } = useToast()
+  const [leaveTypes, setLeaveTypes] = useState([])
   const [form, setForm] = useState({
     name: user.name,
     phone: user.phone,
     location: user.location,
   })
 
-  function onSubmit(event) {
+  useEffect(() => {
+    api
+      .get('/leave-types')
+      .then((res) => setLeaveTypes(res.data))
+      .catch(() => push('Gagal memuat saldo cuti.', 'error'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function onSubmit(event) {
     event.preventDefault()
-    updateUser(form)
-    push('Profil diperbarui.')
+    try {
+      await updateUser(form)
+      push('Profil diperbarui.')
+    } catch {
+      push('Gagal menyimpan profil.', 'error')
+    }
   }
 
   return (
@@ -91,7 +104,7 @@ export default function Profile() {
           <section className="card panel">
             <h2 style={{ fontSize: '1.05rem' }}>Saldo cuti</h2>
             <div className="bars" style={{ marginTop: 14 }}>
-              {LEAVE_TYPES.map((type) => (
+              {leaveTypes.map((type) => (
                 <div className="bar-row" key={type.id}>
                   <span>{type.name.replace('Cuti ', '')}</span>
                   <div className="bar-track">

@@ -1,11 +1,32 @@
-import { DEPT_LEAVE, LEAVE_REQUESTS, MONTHLY_TREND } from '../data/mock'
+import { useEffect, useState } from 'react'
+import api from '../api/axios'
+import { useToast } from '../context/ToastContext'
 
 export default function Reports() {
-  const approved = LEAVE_REQUESTS.filter((item) => item.status === 'approved').length
-  const pending = LEAVE_REQUESTS.filter((item) => item.status === 'pending').length
-  const rejected = LEAVE_REQUESTS.filter((item) => item.status === 'rejected').length
-  const maxTrend = Math.max(...MONTHLY_TREND)
-  const maxDept = Math.max(...DEPT_LEAVE.map((d) => d.value))
+  const { push } = useToast()
+  const [data, setData] = useState(null)
+
+  useEffect(() => {
+    api
+      .get('/reports')
+      .then((res) => setData(res.data))
+      .catch(() => push('Gagal memuat laporan.', 'error'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  if (!data) {
+    return (
+      <div className="page-head">
+        <div>
+          <h1>Laporan & analitik</h1>
+          <p>Memuat data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const maxTrend = Math.max(...data.monthly_trend, 1)
+  const maxDept = Math.max(...data.dept_leave.map((d) => d.value), 1)
 
   return (
     <div>
@@ -22,22 +43,22 @@ export default function Reports() {
       <div className="kpi-grid">
         <article className="card kpi">
           <h3>Total permohonan</h3>
-          <b>{LEAVE_REQUESTS.length}</b>
+          <b>{data.total}</b>
           <span>periode berjalan</span>
         </article>
         <article className="card kpi">
           <h3>Disetujui</h3>
-          <b>{approved}</b>
+          <b>{data.approved}</b>
           <span>siap diposting ke kalender</span>
         </article>
         <article className="card kpi">
           <h3>Menunggu</h3>
-          <b>{pending}</b>
+          <b>{data.pending}</b>
           <span>perlu keputusan</span>
         </article>
         <article className="card kpi">
           <h3>Ditolak</h3>
-          <b>{rejected}</b>
+          <b>{data.rejected}</b>
           <span>dengan catatan penolakan</span>
         </article>
       </div>
@@ -48,7 +69,7 @@ export default function Reports() {
             <h2>Volume bulanan</h2>
           </div>
           <div className="spark">
-            {MONTHLY_TREND.map((value, index) => (
+            {data.monthly_trend.map((value, index) => (
               <i key={index} style={{ height: value ? `${(value / maxTrend) * 100}%` : '8%' }} />
             ))}
           </div>
@@ -58,7 +79,7 @@ export default function Reports() {
             <h2>Hari cuti per unit</h2>
           </div>
           <div className="bars">
-            {DEPT_LEAVE.map((dept) => (
+            {data.dept_leave.map((dept) => (
               <div className="bar-row" key={dept.name}>
                 <span>{dept.name}</span>
                 <div className="bar-track">

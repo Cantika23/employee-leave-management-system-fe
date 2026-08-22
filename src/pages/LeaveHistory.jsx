@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react'
-import { LEAVE_REQUESTS } from '../data/mock'
+import { useEffect, useMemo, useState } from 'react'
+import api from '../api/axios'
+import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import { formatDate, initials, statusLabel } from '../lib/format'
 
 const FILTERS = [
@@ -10,16 +12,30 @@ const FILTERS = [
 ]
 
 export default function LeaveHistory() {
+  const { user } = useAuth()
+  const { push } = useToast()
   const [filter, setFilter] = useState('all')
   const [query, setQuery] = useState('')
+  const [requests, setRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api
+      .get('/leave-requests')
+      .then((res) => setRequests(res.data))
+      .catch(() => push('Gagal memuat riwayat cuti.', 'error'))
+      .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const rows = useMemo(
     () =>
-      LEAVE_REQUESTS.filter((item) => (filter === 'all' ? true : item.status === filter)).filter(
-        (item) =>
-          `${item.employee} ${item.id} ${item.type}`.toLowerCase().includes(query.toLowerCase()),
-      ),
-    [filter, query],
+      requests
+        .filter((item) => (filter === 'all' ? true : item.status === filter))
+        .filter((item) =>
+          `${user.name} ${item.id} ${item.type}`.toLowerCase().includes(query.toLowerCase()),
+        ),
+    [requests, filter, query, user.name],
   )
 
   return (
@@ -71,9 +87,9 @@ export default function LeaveHistory() {
                   </td>
                   <td>
                     <div className="person">
-                      <span className="avatar">{initials(row.employee)}</span>
+                      <span className="avatar">{initials(user.name)}</span>
                       <span>
-                        <strong>{row.employee}</strong>
+                        <strong>{user.name}</strong>
                         <span>{row.reason}</span>
                       </span>
                     </div>
@@ -90,7 +106,9 @@ export default function LeaveHistory() {
               ))}
             </tbody>
           </table>
-          {rows.length === 0 && <div className="empty">Tidak ada permohonan pada filter ini.</div>}
+          {!loading && rows.length === 0 && (
+            <div className="empty">Tidak ada permohonan pada filter ini.</div>
+          )}
         </div>
       </section>
     </div>
