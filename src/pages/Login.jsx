@@ -17,10 +17,11 @@ export default function Login() {
     setError('')
   }
 
-  function onSubmit(event) {
+  async function onSubmit(event) {
     event.preventDefault()
+    setError('')
     try {
-      login(form.email, form.password)
+      await login(form.email, form.password)
       push('Selamat datang kembali di Aether Leave')
       navigate('/app')
     } catch (err) {

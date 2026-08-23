@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { HOLIDAYS, LEAVE_REQUESTS } from '../data/mock'
+import api from '../api/axios'
+import { useToast } from '../context/ToastContext'
 
 const MONTHS = [
   'Januari',
@@ -25,8 +26,18 @@ function toKey(date) {
 }
 
 export default function LeaveCalendar() {
+  const { push } = useToast()
   const [cursor, setCursor] = useState(new Date(2026, 7, 1))
-  const today = new Date(2026, 7, 20)
+  const [holidays, setHolidays] = useState([])
+  const today = new Date()
+
+  useEffect(() => {
+    api
+      .get('/holidays')
+      .then((res) => setHolidays(res.data))
+      .catch(() => push('Gagal memuat hari libur.', 'error'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const cells = useMemo(() => {
     const year = cursor.getFullYear()
@@ -53,25 +64,17 @@ export default function LeaveCalendar() {
     return list
   }, [cursor])
 
+  // Catatan: saat ini hanya menandai hari libur nasional dari backend.
+  // Menampilkan cuti seluruh tim di kalender butuh endpoint khusus
+  // (mis. GET /leave-requests/team) yang belum dibuat di kerangka ini.
   const eventsByDay = useMemo(() => {
     const map = {}
-    LEAVE_REQUESTS.filter((item) => item.status !== 'rejected').forEach((item) => {
-      const start = new Date(item.from)
-      const end = new Date(item.to)
-      const cursorDay = new Date(start)
-      while (cursorDay <= end) {
-        const key = toKey(cursorDay)
-        map[key] = map[key] || []
-        map[key].push(item)
-        cursorDay.setDate(cursorDay.getDate() + 1)
-      }
-    })
-    HOLIDAYS.forEach((holiday) => {
+    holidays.forEach((holiday) => {
       map[holiday.date] = map[holiday.date] || []
       map[holiday.date].push({ employee: holiday.name, type: 'Libur' })
     })
     return map
-  }, [])
+  }, [holidays])
 
   return (
     <div>

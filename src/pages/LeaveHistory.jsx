@@ -1,53 +1,65 @@
-import { useMemo, useState } from 'react'
-import { LEAVE_REQUESTS } from '../data/mock'
-import { formatDate, initials, statusLabel } from '../lib/format'
+import { useEffect, useMemo, useState } from 'react'
+import api from '../api/axios'
+import { useToast } from '../context/ToastContext'
+import { formatDate, statusLabel } from '../lib/format'
 
-const FILTERS = [
-  { id: 'all', label: 'Semua' },
+const STATUS_OPTIONS = [
+  { id: 'all', label: 'Semua Status' },
   { id: 'pending', label: 'Menunggu' },
   { id: 'approved', label: 'Disetujui' },
   { id: 'rejected', label: 'Ditolak' },
 ]
 
-export default function LeaveHistory() {
-  const [filter, setFilter] = useState('all')
-  const [query, setQuery] = useState('')
+const PAGE_SIZE = 5
 
-  const rows = useMemo(
-    () =>
-      LEAVE_REQUESTS.filter((item) => (filter === 'all' ? true : item.status === filter)).filter(
-        (item) =>
-          `${item.employee} ${item.id} ${item.type}`.toLowerCase().includes(query.toLowerCase()),
-      ),
-    [filter, query],
+export default function LeaveHistory() {
+  const { push } = useToast()
+  const [status, setStatus] = useState('all')
+  const [page, setPage] = useState(1)
+  const [requests, setRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api
+      .get('/leave-requests')
+      .then((res) => setRequests(res.data))
+      .catch(() => push('Gagal memuat riwayat pengajuan.', 'error'))
+      .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const filtered = useMemo(
+    () => requests.filter((item) => (status === 'all' ? true : item.status === status)),
+    [requests, status],
   )
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const pageStart = (page - 1) * PAGE_SIZE
+  const rows = filtered.slice(pageStart, pageStart + PAGE_SIZE)
+
+  function onStatusChange(value) {
+    setStatus(value)
+    setPage(1)
+  }
 
   return (
     <div>
       <div className="page-head">
         <div>
-          <h1>Riwayat cuti</h1>
-          <p>Seluruh permohonan tercatat rapi, siap ditelusuri kapan saja.</p>
+          <h1>Riwayat Pengajuan</h1>
+          <p>Seluruh pengajuan Anda tercatat rapi, siap ditelusuri kapan saja.</p>
         </div>
-      </div>
-
-      <div className="filters">
-        {FILTERS.map((item) => (
-          <button
-            key={item.id}
-            className={`chip ${filter === item.id ? 'is-on' : ''}`}
-            onClick={() => setFilter(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-        <label className="search" style={{ marginLeft: 'auto' }}>
-          <input
-            placeholder="Cari nama atau nomor cuti"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </label>
+        <select
+          value={status}
+          onChange={(e) => onStatusChange(e.target.value)}
+          style={{ maxWidth: 180 }}
+        >
+          {STATUS_OPTIONS.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <section className="card panel">
@@ -55,34 +67,20 @@ export default function LeaveHistory() {
           <table className="table">
             <thead>
               <tr>
-                <th>Nomor</th>
-                <th>Karyawan</th>
+                <th>No</th>
                 <th>Jenis</th>
-                <th>Periode</th>
-                <th>Diajukan</th>
+                <th>Tanggal</th>
+                <th>Durasi</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {rows.map((row, index) => (
                 <tr key={row.id}>
-                  <td>
-                    <b>{row.id}</b>
-                  </td>
-                  <td>
-                    <div className="person">
-                      <span className="avatar">{initials(row.employee)}</span>
-                      <span>
-                        <strong>{row.employee}</strong>
-                        <span>{row.reason}</span>
-                      </span>
-                    </div>
-                  </td>
+                  <td>{pageStart + index + 1}</td>
                   <td>{row.type}</td>
-                  <td>
-                    {formatDate(row.from)} – {formatDate(row.to)} · {row.days}h
-                  </td>
-                  <td>{formatDate(row.submitted)}</td>
+                  <td>{row.from === row.to ? formatDate(row.from) : `${formatDate(row.from)} - ${formatDate(row.to)}`}</td>
+                  <td>{row.days} Hari</td>
                   <td>
                     <span className={`badge badge--${row.status}`}>{statusLabel(row.status)}</span>
                   </td>
@@ -90,8 +88,34 @@ export default function LeaveHistory() {
               ))}
             </tbody>
           </table>
-          {rows.length === 0 && <div className="empty">Tidak ada permohonan pada filter ini.</div>}
+          {!loading && rows.length === 0 && (
+            <div className="empty">Tidak ada pengajuan pada filter ini.</div>
+          )}
         </div>
+        {filtered.length > 0 && (
+          <div className="panel__head" style={{ marginTop: 14 }}>
+            <span className="hint">
+              Menampilkan {pageStart + 1}-{Math.min(pageStart + PAGE_SIZE, filtered.length)} dari{' '}
+              {filtered.length} Data
+            </span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="btn btn-outline btn-sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Sebelumnya
+              </button>
+              <button
+                className="btn btn-outline btn-sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Berikutnya
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   )

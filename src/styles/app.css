@@ -16,6 +16,30 @@
   position: sticky;
   top: 0;
   height: 100vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.sidebar:hover {
+  scrollbar-color: var(--sky-200) transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.sidebar:hover::-webkit-scrollbar-thumb {
+  background: var(--sky-200);
 }
 
 .sidebar nav {
@@ -171,6 +195,72 @@
   bottom: 8px;
   opacity: 0.18;
   color: var(--sky-500);
+}
+
+.kpi--info {
+  border-left: 4px solid var(--sky-500);
+}
+
+.kpi--warning {
+  border-left: 4px solid var(--warning);
+}
+
+.kpi--success {
+  border-left: 4px solid var(--success);
+}
+
+.kpi--danger {
+  border-left: 4px solid var(--danger);
+}
+
+.shortcut-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  color: var(--navy);
+  text-decoration: none;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.shortcut-card:hover {
+  box-shadow: 0 8px 20px rgba(14, 165, 233, 0.14);
+  transform: translateY(-2px);
+}
+
+.shortcut-card svg {
+  color: var(--sky-600);
+  flex-shrink: 0;
+}
+
+.shortcut-card strong {
+  display: block;
+  font-size: 0.98rem;
+}
+
+.status-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.status-dot--approved {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.status-dot--rejected {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.status-dot--pending {
+  background: var(--warning-soft);
+  color: var(--warning);
 }
 
 .dash-grid {

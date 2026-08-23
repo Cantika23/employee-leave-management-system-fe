@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   Bell,
@@ -17,17 +17,17 @@ import {
 } from 'lucide-react'
 import Brand from '../Brand'
 import { useAuth } from '../../context/AuthContext'
-import { NOTIFICATIONS } from '../../data/mock'
+import api from '../../api/axios'
 
 const MENU = [
   { to: '/app', label: 'Ringkasan', icon: LayoutDashboard, end: true, group: 'Utama' },
-  { to: '/app/leave/apply', label: 'Ajukan Cuti', icon: FilePlus2, group: 'Cuti' },
-  { to: '/app/leave/history', label: 'Riwayat Cuti', icon: History, group: 'Cuti' },
-  { to: '/app/calendar', label: 'Kalender', icon: CalendarDays, group: 'Cuti' },
+  { to: '/app/leave/apply', label: 'Pengajuan', icon: FilePlus2, group: 'Cuti' },
+  { to: '/app/leave/history', label: 'Riwayat Pengajuan', icon: History, group: 'Cuti' },
+  { to: '/app/calendar', label: 'Kalender', icon: CalendarDays, group: 'Cuti', roles: ['manager', 'hr'] },
   { to: '/app/approvals', label: 'Persetujuan', icon: ClipboardCheck, group: 'Tim', roles: ['manager', 'hr'] },
   { to: '/app/employees', label: 'Karyawan', icon: Users, group: 'Organisasi', roles: ['hr'] },
   { to: '/app/reports', label: 'Laporan', icon: PieChart, group: 'Organisasi', roles: ['manager', 'hr'] },
-  { to: '/app/settings', label: 'Pengaturan', icon: Settings, group: 'Akun' },
+  { to: '/app/settings', label: 'Pengaturan', icon: Settings, group: 'Akun', roles: ['manager', 'hr'] },
   { to: '/app/profile', label: 'Profil', icon: UserRound, group: 'Akun' },
 ]
 
@@ -45,6 +45,14 @@ export default function AppShell() {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [notes, setNotes] = useState(false)
+  const [notifications, setNotifications] = useState([])
+
+  useEffect(() => {
+    api
+      .get('/notifications')
+      .then((res) => setNotifications(res.data))
+      .catch(() => {})
+  }, [])
 
   const items = useMemo(
     () => MENU.filter((item) => !item.roles || item.roles.includes(user.role)),
@@ -113,16 +121,32 @@ export default function AppShell() {
             <div className="rel">
               <button className="icon-btn" onClick={() => setNotes((v) => !v)} aria-label="Notifikasi">
                 <Bell size={18} />
-                <span className="dot-alert" />
+                {notifications.some((n) => n.unread) && <span className="dot-alert" />}
               </button>
               {notes && (
                 <div className="dropdown">
-                  {NOTIFICATIONS.map((item) => (
-                    <button key={item.id} onClick={() => setNotes(false)}>
+                  {notifications.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setNotes(false)
+                        if (item.unread) {
+                          api.patch(`/notifications/${item.id}/read`).catch(() => {})
+                          setNotifications((prev) =>
+                            prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n)),
+                          )
+                        }
+                      }}
+                    >
                       <strong>{item.title}</strong>
                       <div className="hint">{item.time}</div>
                     </button>
                   ))}
+                  {notifications.length === 0 && (
+                    <button disabled>
+                      <span className="hint">Tidak ada notifikasi.</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
