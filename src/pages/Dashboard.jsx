@@ -146,7 +146,7 @@ function ManagerDashboard({ user }) {
   const [summary, setSummary] = useState({ team_on_leave: [], pending_count: 0 })
   const [holidays, setHolidays] = useState([])
   const [recentRequests, setRecentRequests] = useState([])
-  const [reports, setReports] = useState(null) // hanya terisi untuk role hr
+  const [reports, setReports] = useState(null)
 
   useEffect(() => {
     api.get('/leave-types').then((res) => setLeaveTypes(res.data)).catch(() => {})
@@ -159,38 +159,261 @@ function ManagerDashboard({ user }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const annual = leaveTypes.find((t) => t.id === 'annual')
-  const remaining = annual ? annual.days - annual.used : 0
-  const maxDept = reports?.dept_leave?.length ? Math.max(...reports.dept_leave.map((d) => d.value)) : 1
-  const maxTrend = reports?.monthly_trend?.length ? Math.max(...reports.monthly_trend) : 1
+    return (
+      <div>
+        <div className="page-head">
+          <div>
+            <h1>{greeting()}, {user.name.split(' ')[0]}.</h1>
+            <p>Berikut ringkasan aktivitas cuti organisasi hari ini.</p>
+          </div>
+        </div>
+
+        <div className="kpi-grid">
+          <article className="card kpi">
+            <h3>Menunggu persetujuan</h3>
+            <b>{summary.pending_count}</b>
+            <span>Perlu keputusan</span>
+            <Clock3 className="watermark" size={54} />
+          </article>
+          <article className="card kpi">
+            <h3>Tim sedang cuti</h3>
+            <b>{summary.team_on_leave.length}</b>
+            <span>Hari ini</span>
+            <Users className="watermark" size={54} />
+          </article>
+          <article className="card kpi">
+            <h3>Hari libur berikutnya</h3>
+            <b>{holidays[0] ? formatDate(holidays[0].date) : '—'}</b>
+            <span>{holidays[0]?.name ?? 'Belum ada data'}</span>
+            <CalendarDays className="watermark" size={54} />
+          </article>
+        </div>
+
+        <section className="card panel">
+          <div className="panel__head">
+            <h2>Sedang cuti</h2>
+            <Link to="/app/calendar" className="hint">Lihat kalender</Link>
+          </div>
+          <div className="list-soft">
+            {summary.team_on_leave.map((person, index) => (
+              <article key={`${person.name}-${index}`}>
+                <strong>{person.name}</strong>
+                <span className="badge badge--sky">s.d. {person.until}</span>
+              </article>
+            ))}
+            {summary.team_on_leave.length === 0 && <p className="hint">Tidak ada yang sedang cuti.</p>}
+          </div>
+        </section>
+      </div>
+    )
+  }
+
+/*
+    return (
+      <div>
+        <div className="page-head">
+          <div>
+            <h1>{greeting()}, {user.name.split(' ')[0]}.</h1>
+            <p>Berikut ringkasan aktivitas cuti organisasi hari ini.</p>
+          </div>
+        </div>
+
+        <div className="kpi-grid">
+          <article className="card kpi">
+            <h3>Menunggu persetujuan</h3>
+            <b>{summary.pending_count}</b>
+            <span>Perlu keputusan</span>
+            <Clock3 className="watermark" size={54} />
+          </article>
+          <article className="card kpi">
+            <h3>Tim sedang cuti</h3>
+            <b>{summary.team_on_leave.length}</b>
+            <span>Hari ini</span>
+            <Users className="watermark" size={54} />
+          </article>
+          <article className="card kpi">
+            <h3>Hari libur berikutnya</h3>
+            <b>{holidays[0] ? formatDate(holidays[0].date) : '—'}</b>
+            <span>{holidays[0]?.name ?? 'Belum ada data'}</span>
+            <CalendarDays className="watermark" size={54} />
+          </article>
+        </div>
+
+        <section className="card panel">
+          <div className="panel__head">
+            <h2>Sedang cuti</h2>
+            <Link to="/app/calendar" className="hint">Lihat kalender</Link>
+          </div>
+          <div className="list-soft">
+            {summary.team_on_leave.map((person, index) => (
+              <article key={`${person.name}-${index}`}>
+                <strong>{person.name}</strong>
+                <span className="badge badge--sky">s.d. {person.until}</span>
+              </article>
+            ))}
+            {summary.team_on_leave.length === 0 && <p className="hint">Tidak ada yang sedang cuti.</p>}
+          </div>
+        </section>
+      </div>
+    )
+  Clock3,
+  Users,
+} from 'lucide-react'
+
+import api from '../api/axios'
+import { useAuth } from '../context/AuthContext'
+import {
+  formatDate,
+  greeting,
+} from '../lib/format'
+
+
+export default function Dashboard() {
+  const { user } = useAuth()
+
+  const [employees, setEmployees] = useState([])
+  const [holidays, setHolidays] = useState([])
+  const [showCalendar, setShowCalendar] = useState(false)
+
+  const [summary, setSummary] = useState({
+    team_on_leave: [],
+    pending_count: 0,
+    monthly_request: [],
+    remaining_leave: 0,
+  })
+
+
+  useEffect(() => {
+    loadDashboard()
+  }, [])
+
+
+  async function loadDashboard() {
+    try {
+      const [
+        employeeRes,
+        summaryRes,
+        holidayRes,
+      ] = await Promise.all([
+        api.get('/employees'),
+        api.get('/dashboard/summary'),
+        api.get('/holidays'),
+      ])
+
+      setEmployees(employeeRes.data)
+      setSummary(summaryRes.data)
+      setHolidays(holidayRes.data)
+
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+
+  const nextHoliday = holidays[0]
+
+
+  const chartData =
+    summary.monthly_request || []
+
+
+  const maxChart =
+    Math.max(...chartData, 1)
+
+
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
+  ]
 
   return (
     <div>
+
       <div className="page-head">
         <div>
+
           <h1>
             {greeting()}, {user.name.split(' ')[0]}.
           </h1>
-          <p>Berikut ringkasan cuti organisasi hari ini — tenang, lengkap, siap ditindaklanjuti.</p>
+
+          <p>
+            Berikut ringkasan aktivitas cuti organisasi hari ini.
+          </p>
+
         </div>
-        <Link to="/app/leave/apply" className="btn btn-primary">
-          Ajukan cuti
-        </Link>
       </div>
 
+
+
       <div className="kpi-grid">
+
+
         <article className="card kpi">
           <h3>Sisa cuti tahunan</h3>
           <b>{remaining} hari</b>
           <span>dari {annual?.days ?? 0} hari kuota</span>
           <Plane className="watermark" size={54} />
+
+          <h3>
+            Total karyawan
+          </h3>
+
+          <b>
+            {employees.length}
+          </b>
+
+          <span>
+            Karyawan aktif
+          </span>
+
+          <Users
+            className="watermark"
+            size={54}
+          />
+
         </article>
+
+
+
+
         <article className="card kpi">
           <h3>Menunggu persetujuan</h3>
           <b>{summary.pending_count}</b>
           <span>perlu tinjauan atasan / HR</span>
           <Clock3 className="watermark" size={54} />
+
+          <h3>
+            Menunggu persetujuan
+          </h3>
+
+          <b>
+            {summary.pending_count}
+          </b>
+
+          <span>
+            Perlu keputusan HR
+          </span>
+
+          <Clock3
+            className="watermark"
+            size={54}
+          />
+
         </article>
+
+
+
+
         <article className="card kpi">
           <h3>Tim sedang cuti</h3>
           <b>{summary.team_on_leave.length}</b>
@@ -202,8 +425,72 @@ function ManagerDashboard({ user }) {
           <b>{holidays[0] ? formatDate(holidays[0].date) : '—'}</b>
           <span>{holidays[0]?.name ?? 'Belum ada data'}</span>
           <CalendarDays className="watermark" size={54} />
+
+          <h3>
+            Tim sedang cuti
+          </h3>
+
+          <b>
+            {summary.team_on_leave.length}
+          </b>
+
+          <span>
+            Karyawan aktif cuti hari ini
+          </span>
+
+          <Users
+            className="watermark"
+            size={54}
+          />
+
         </article>
+
+
+
+
+        <article
+          className="card kpi"
+          onClick={() => setShowCalendar(true)}
+          style={{
+            cursor: 'pointer',
+          }}
+        >
+
+          <h3>
+            Hari libur berikutnya
+          </h3>
+
+
+          <b>
+            {
+              nextHoliday
+                ? formatDate(nextHoliday.date)
+                : '—'
+            }
+          </b>
+
+
+          <span>
+            {
+              nextHoliday?.name ??
+              'Belum ada data'
+            }
+          </span>
+
+
+          <CalendarDays
+            className="watermark"
+            size={54}
+          />
+
+        </article>
+
+
       </div>
+
+
+
+
 
       <div className="dash-grid">
         <section className="card panel">
@@ -284,7 +571,173 @@ function ManagerDashboard({ user }) {
               {summary.team_on_leave.length === 0 && <p className="hint">Tidak ada yang sedang cuti.</p>}
             </div>
           </section>
+        <section className="card panel">
+  <div className="panel__head">
+    <h2>Grafik pengajuan cuti</h2>
+  </div>
+
+  <div
+    style={{
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      height: 300,
+      padding: '30px 8px 8px',
+    }}
+  >
+    <div
+      style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'flex-end',
+        gap: 10,
+        padding: '60px 6px 0',
+        borderBottom: '1px solid #e6eef8',
+      }}
+    >
+      {chartData.map((value, index) => {
+        const barHeight =
+          value === 0 ? 8 : Math.max((value / maxChart) * 200, 24)
+
+        return (
+          <div
+            key={index}
+            style={{
+              flex: 1,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'flex-end',
+              height: '100%',
+            }}
+          >
+            <div
+              style={{
+                width: '100%',
+                maxWidth: 56,
+                height: `${barHeight}px`,
+                borderRadius: '12px 12px 6px 6px',
+                background:
+                  value === 0
+                    ? '#d8eefc'
+                    : 'linear-gradient(180deg, #43b7ff 0%, #8ed8ff 100%)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+                paddingTop: value === 0 ? 0 : 8,
+                color: '#0b5c8f',
+                fontSize: 12,
+                fontWeight: 700,
+                transition: 'all .25s ease',
+              }}
+            >
+              {value > 0 ? value : ''}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+
+    <div
+      style={{
+        display: 'flex',
+        gap: 10,
+        padding: '8px 6px 0',
+      }}
+    >
+      {months.map((month, index) => (
+        <div
+          key={index}
+          style={{
+            flex: 1,
+            textAlign: 'center',
+            fontSize: 12,
+            color: 'var(--muted)',
+            lineHeight: 1.2,
+          }}
+        >
+          {month}
         </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+
+
+
+
+
+        <section className="card panel">
+
+
+          <div className="panel__head">
+
+            <h2>
+              Sedang cuti
+            </h2>
+
+          </div>
+
+
+
+          <div className="list-soft">
+
+
+            {
+              summary.team_on_leave.map(
+                (person, index) => (
+
+                  <article
+                    key={`${person.name}-${index}`}
+                  >
+
+                    <div>
+
+                      <strong>
+                        {person.name}
+                      </strong>
+
+
+                      <div className="hint">
+                        {person.type}
+                      </div>
+
+
+                    </div>
+
+
+                    <span className="badge badge--sky">
+                      s.d. {person.until}
+                    </span>
+
+
+                  </article>
+
+                )
+              )
+            }
+
+
+
+            {
+              summary.team_on_leave.length === 0 && (
+
+                <p className="hint">
+                  Tidak ada yang sedang cuti.
+                </p>
+
+              )
+            }
+
+
+          </div>
+
+
+        </section>
+
+
+      </div>
+
       </div>
 
       <div className="dash-grid" style={{ marginTop: 16 }}>
@@ -319,6 +772,82 @@ function ManagerDashboard({ user }) {
           </div>
         </section>
       </div>
+      {
+        showCalendar && (
+
+          <div
+            onClick={() => setShowCalendar(false)}
+
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,.35)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1000,
+            }}
+          >
+
+
+            <section
+              className="card panel"
+
+              onClick={(e) => e.stopPropagation()}
+
+              style={{
+                width: 420,
+              }}
+            >
+
+
+              <div className="panel__head">
+
+                <h2>
+                  Kalender Hari Libur
+                </h2>
+
+              </div>
+
+
+
+              {
+                holidays.map((item) => (
+
+                  <div
+                    key={item.id}
+
+                    className="notice"
+
+                    style={{
+                      marginBottom: 10,
+                    }}
+                  >
+
+                    <strong>
+                      {formatDate(item.date)}
+                    </strong>
+
+
+                    <div>
+                      {item.name}
+                    </div>
+
+
+                  </div>
+
+                ))
+              }
+
+
+            </section>
+
+
+          </div>
+
+        )
+      }
+
     </div>
   )
 }
