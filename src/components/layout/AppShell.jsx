@@ -20,12 +20,11 @@ import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
 
 const MENU = [
-  { to: '/app', label: 'Ringkasan', icon: LayoutDashboard, end: true, group: 'Utama' },
-  { to: '/app/leave/apply', label: 'Ajukan Cuti', icon: FilePlus2, group: 'Cuti' },
+  { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true, group: 'Utama' },
+  { to: '/app/leave/apply', label: 'Pengajuan Cuti', icon: FilePlus2, group: 'Cuti' },
   { to: '/app/leave/history', label: 'Riwayat Cuti', icon: History, group: 'Cuti' },
-  { to: '/app/calendar', label: 'Kalender', icon: CalendarDays, group: 'Cuti' },
   { to: '/app/approvals', label: 'Persetujuan', icon: ClipboardCheck, group: 'Tim', roles: ['manager', 'hr'] },
-  { to: '/app/employees', label: 'Karyawan', icon: Users, group: 'Organisasi', roles: ['hr'] },
+  { to: '/app/employees', label: 'Data Karyawan', icon: Users, group: 'Organisasi', roles: ['hr'] },
   { to: '/app/reports', label: 'Laporan', icon: PieChart, group: 'Organisasi', roles: ['manager', 'hr'] },
   { to: '/app/settings', label: 'Pengaturan', icon: Settings, group: 'Akun' },
   { to: '/app/profile', label: 'Profil', icon: UserRound, group: 'Akun' },
