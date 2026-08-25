@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   Bell,
-  CalendarDays,
   ClipboardCheck,
   LayoutDashboard,
   LogOut,
@@ -19,20 +18,36 @@ import Brand from '../Brand'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
 
-const MENU = [
-  { to: '/app', label: 'Ringkasan', icon: LayoutDashboard, end: true, group: 'Utama' },
-  { to: '/app/leave/apply', label: 'Pengajuan', icon: FilePlus2, group: 'Cuti' },
-  { to: '/app/leave/history', label: 'Riwayat Pengajuan', icon: History, group: 'Cuti' },
-  { to: '/app/calendar', label: 'Kalender', icon: CalendarDays, group: 'Cuti', roles: ['manager', 'hr'] },
+const EMPLOYEE_MENU = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true, group: 'Utama' },
   { to: '/app/leave/apply', label: 'Pengajuan Cuti', icon: FilePlus2, group: 'Cuti' },
   { to: '/app/leave/history', label: 'Riwayat Cuti', icon: History, group: 'Cuti' },
-  { to: '/app/approvals', label: 'Persetujuan', icon: ClipboardCheck, group: 'Tim', roles: ['manager', 'hr'] },
-  { to: '/app/employees', label: 'Data Karyawan', icon: Users, group: 'Organisasi', roles: ['hr'] },
-  { to: '/app/reports', label: 'Laporan', icon: PieChart, group: 'Organisasi', roles: ['manager', 'hr'] },
-  { to: '/app/settings', label: 'Pengaturan', icon: Settings, group: 'Akun', roles: ['manager', 'hr'] },
   { to: '/app/profile', label: 'Profil', icon: UserRound, group: 'Akun' },
 ]
+
+const MANAGER_MENU = [
+  { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true, group: 'Utama' },
+  { to: '/app/approvals', label: 'Pengajuan Tim', icon: ClipboardCheck, group: 'Tim' },
+  { to: '/app/leave/history', label: 'Riwayat Pengajuan', icon: History, group: 'Tim' },
+  { to: '/app/profile', label: 'Profil', icon: UserRound, group: 'Akun' },
+]
+
+const HR_MENU = [
+  { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true, group: 'Utama' },
+  { to: '/app/leave/apply', label: 'Pengajuan Cuti', icon: FilePlus2, group: 'Cuti' },
+  { to: '/app/leave/history', label: 'Riwayat Cuti', icon: History, group: 'Cuti' },
+  { to: '/app/approvals', label: 'Persetujuan', icon: ClipboardCheck, group: 'Tim' },
+  { to: '/app/employees', label: 'Data Karyawan', icon: Users, group: 'Organisasi' },
+  { to: '/app/reports', label: 'Laporan', icon: PieChart, group: 'Organisasi' },
+  { to: '/app/settings', label: 'Pengaturan', icon: Settings, group: 'Akun' },
+  { to: '/app/profile', label: 'Profil', icon: UserRound, group: 'Akun' },
+]
+
+const MENU_BY_ROLE = {
+  employee: EMPLOYEE_MENU,
+  manager: MANAGER_MENU,
+  hr: HR_MENU,
+}
 
 function initials(name = '') {
   return name
@@ -57,10 +72,7 @@ export default function AppShell() {
       .catch(() => {})
   }, [])
 
-  const items = useMemo(
-    () => MENU.filter((item) => !item.roles || item.roles.includes(user.role)),
-    [user.role],
-  )
+  const items = MENU_BY_ROLE[user.role] || EMPLOYEE_MENU
 
   const grouped = items.reduce((acc, item) => {
     acc[item.group] = acc[item.group] || []

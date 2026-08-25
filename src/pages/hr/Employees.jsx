@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import api from '../api/axios'
-import { useToast } from '../context/ToastContext'
-import { initials, statusLabel } from '../lib/format'
+import api from '../../api/axios'
+import { useToast } from '../../context/ToastContext'
+import { initials, statusLabel } from '../../lib/format'
 
 export default function Employees() {
   const { push } = useToast()
@@ -14,14 +14,18 @@ export default function Employees() {
     api
       .get('/employees')
       .then((res) => setEmployees(res.data))
-      .catch(() => push('Gagal memuat direktori karyawan.', 'error'))
+      .catch(() =>
+        push('Gagal memuat direktori karyawan.', 'error'),
+      )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
 
   const departments = [
     'all',
     ...new Set(employees.map((item) => item.dept)),
   ]
+
 
   const rows = useMemo(
     () =>

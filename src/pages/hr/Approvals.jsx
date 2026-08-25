@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import api from '../api/axios'
-import { formatDate, initials } from '../lib/format'
-import { useToast } from '../context/ToastContext'
+import api from '../../api/axios'
+import { formatDate, initials } from '../../lib/format'
+import { useToast } from '../../context/ToastContext'
 
 export default function Approvals() {
   const { push } = useToast()
+
   const [pending, setPending] = useState([])
   const [loading, setLoading] = useState(true)
   const [decidingId, setDecidingId] = useState(null)
@@ -16,6 +17,7 @@ export default function Approvals() {
 
   function loadApprovals() {
     setLoading(true)
+
     api
       .get('/approvals')
       .then((res) => setPending(res.data))
@@ -27,13 +29,29 @@ export default function Approvals() {
 
   async function decide(id, status) {
     setDecidingId(id)
+
     try {
-      await api.patch(`/leave-requests/${id}/decide`, { status })
-      setPending((prev) => prev.filter((item) => item.id !== id))
+      await api.patch(`/leave-requests/${id}/decide`, {
+        status,
+      })
+
+      setPending((prev) =>
+        prev.filter((item) => item.id !== id),
+      )
+
       setSelectedItem(null)
-      push(status === 'approved' ? 'Permohonan disetujui.' : 'Permohonan ditolak.')
+
+      push(
+        status === 'approved'
+          ? 'Permohonan disetujui.'
+          : 'Permohonan ditolak.',
+      )
     } catch (err) {
-      push(err.response?.data?.message || 'Gagal memproses keputusan.', 'error')
+      push(
+        err.response?.data?.message ||
+          'Gagal memproses keputusan.',
+        'error',
+      )
     } finally {
       setDecidingId(null)
     }
@@ -84,40 +102,6 @@ export default function Approvals() {
                   </span>
                 </span>
               </div>
-              <span className="badge badge--pending">Menunggu</span>
-            </div>
-            <div className="grid-3" style={{ marginBottom: 14 }}>
-              <div className="notice">
-                <div className="hint">Jenis</div>
-                <strong>{item.type}</strong>
-              </div>
-              <div className="notice">
-                <div className="hint">Periode</div>
-                <strong>
-                  {formatDate(item.from)} – {formatDate(item.to)}
-                </strong>
-              </div>
-              <div className="notice">
-                <div className="hint">Durasi</div>
-                <strong>{item.days} hari kerja</strong>
-              </div>
-            </div>
-            <p style={{ marginBottom: 16 }}>{item.reason}</p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                className="btn btn-success btn-sm"
-                disabled={decidingId === item.id}
-                onClick={() => decide(item.id, 'approved')}
-              >
-                Setujui
-              </button>
-              <button
-                className="btn btn-danger btn-sm"
-                disabled={decidingId === item.id}
-                onClick={() => decide(item.id, 'rejected')}
-              >
-                Tolak
-              </button>
 
               <button
                 className="btn btn-primary btn-sm"

@@ -172,6 +172,11 @@ p {
   color: var(--warning);
 }
 
+.badge--pending_manager {
+  background: var(--sky-100);
+  color: var(--sky-700);
+}
+
 .badge--approved,
 .badge--active,
 .badge--success {

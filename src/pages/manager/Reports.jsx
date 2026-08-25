@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
-import api from '../api/axios'
-import { useToast } from '../context/ToastContext'
+import api from '../../api/axios'
+import { useToast } from '../../context/ToastContext'
 
 export default function Reports() {
   const { push } = useToast()

@@ -263,6 +263,11 @@
   color: var(--warning);
 }
 
+.status-dot--pending_manager {
+  background: var(--sky-100);
+  color: var(--sky-700);
+}
+
 .dash-grid {
   display: grid;
   grid-template-columns: 1.6fr 0.9fr;

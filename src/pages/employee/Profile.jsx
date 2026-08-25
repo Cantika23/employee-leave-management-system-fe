@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import api from '../api/axios'
-import { useAuth } from '../context/AuthContext'
-import { useToast } from '../context/ToastContext'
-import { initials } from '../lib/format'
+import api from '../../api/axios'
+import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
+import { initials } from '../../lib/format'
 
 export default function Profile() {
   const { user, updateUser } = useAuth()
