@@ -27,7 +27,7 @@ export default function Footer() {
           <a href="/app">Dashboard</a>
         </div>
       </div>
-      <div className="container footer__copy">© {new Date().getFullYear()} Aether Leave · MITRAL. Seluruh hak dilindungi.</div>
+      <div className="container footer__copy">© {new Date().getFullYear()} MITRAL. Seluruh hak dilindungi.</div>
     </footer>
   )
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import Brand from '../components/Brand'
+import Logo from '../components/Logo'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { DEMO_ACCOUNTS } from '../data/mock'
@@ -22,7 +22,7 @@ export default function Login() {
     setError('')
     try {
       await login(form.email, form.password)
-      push('Selamat datang kembali di Aether Leave')
+      push('Selamat datang kembali di Employee Leave')
       navigate('/app')
     } catch (err) {
       setError(err.message)
@@ -31,35 +31,63 @@ export default function Login() {
 
   return (
     <div className="auth">
-      <section className="auth__showcase">
-        <Brand invert />
-        <div>
-          <h2>Satu pintu masuk untuk seluruh ritme cuti perusahaan.</h2>
-          <p>
-            Pantau kuota, persetujuan, dan kalender tim dalam workspace yang tenang, presisi, dan
-            nyaman digunakan setiap hari.
-          </p>
+      <section
+        className="auth__showcase"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 40,
+        }}
+      >
+        <div style={{ width: '100%', maxWidth: 460 }}>
+          <Logo size={40} showText textColor="#fff" />
         </div>
-        <div className="auth-stats">
-          <div>
-            <strong>98%</strong>
-            pengajuan tuntas
-          </div>
-          <div>
-            <strong>1.2 hari</strong>
-            rata-rata tinjauan
-          </div>
-          <div>
-            <strong>0</strong>
-            spreadsheet terpisah
-          </div>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '6px 14px',
+            borderRadius: 999,
+            background: 'rgba(255,255,255,0.12)',
+            width: 'fit-content',
+            fontSize: 13,
+            fontWeight: 600,
+            letterSpacing: 0.3,
+            alignSelf: 'center',
+            marginRight: 'auto',
+            marginLeft: 'calc(50% - 230px)',
+          }}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: '#fff',
+              display: 'inline-block',
+            }}
+          />
+          Workspace Cuti Karyawan
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%', maxWidth: 460 }}>
+          <h2 style={{ margin: 0 }}>
+            Sistem Pengelolaan Cuti Karyawan
+          </h2>
+          <p style={{ margin: 0 }}>
+            Mengintegrasikan seluruh proses cuti karyawan — pengajuan, persetujuan, hingga pelacakan kuota — dalam satu platform terpusat.
+          </p>
         </div>
       </section>
 
       <section className="auth__panel">
         <div className="auth-card">
-          <Brand />
-          <h1>Masuk ke workspace</h1>
+          <Logo size={40} showText />
+          <h1>Masuk  Sistem</h1>
           <p className="hint">Gunakan akun korporat Anda untuk melanjutkan.</p>
           <form onSubmit={onSubmit}>
             <div className="field">

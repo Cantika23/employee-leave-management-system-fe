@@ -27,7 +27,7 @@ export default function Brand({ to = '/', invert = false, wordmark = true }) {
       </svg>
       {wordmark && (
         <span className="brand__text">
-          Aether<span>Leave</span>
+          Employee<span>Leave</span>
         </span>
       )}
     </Link>

@@ -1815,6 +1815,94 @@
   align-items: center;
 }
 
+/* =========================================================
+   ABOUT — CENTERED VARIANT
+   ========================================================= */
+
+.about-centered {
+  position: relative;
+  z-index: 2;
+}
+
+.about-centered-head {
+  max-width: 640px;
+
+  margin: 0 auto 46px;
+
+  text-align: center;
+}
+
+.about-centered-head .section-kicker.center {
+  justify-content: center;
+}
+
+.about-centered-head .section-kicker.center::before {
+  display: none;
+}
+
+.about-centered-head p {
+  max-width: 560px;
+
+  margin: 16px auto 0;
+
+  color: var(--leave-muted);
+
+  font-size: 13px;
+
+  line-height: 1.85;
+}
+
+.about-simple-grid {
+  display: grid;
+
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 20px;
+}
+
+.about-simple-card {
+  padding: 26px;
+
+  border: 1px solid var(--leave-border);
+
+  border-radius: 18px;
+
+  background: rgba(255, 255, 255, 0.9);
+
+  box-shadow: var(--leave-shadow-sm);
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.about-simple-card:hover {
+  transform: translateY(-5px);
+
+  border-color: #bcd8f7;
+
+  box-shadow: var(--leave-shadow);
+}
+
+.about-simple-card h3 {
+  margin: 0 0 10px;
+
+  color: var(--leave-navy);
+
+  font-size: 15px;
+}
+
+.about-simple-card p {
+  margin: 0;
+
+  color: var(--leave-muted);
+
+  font-size: 12px;
+
+  line-height: 1.8;
+}
+
 .about-copy {
   max-width: 510px;
 }
@@ -1952,6 +2040,8 @@
 .workflow-item {
   position: relative;
 
+  text-align: center;
+
   transition: transform 0.25s ease;
 }
 
@@ -1964,6 +2054,7 @@
 
   display: flex;
   align-items: center;
+  justify-content: center;
 
   margin-bottom: 21px;
 }
@@ -2011,8 +2102,8 @@
 .workflow-line {
   position: absolute;
 
-  left: 48px;
-  right: -30px;
+  left: calc(50% + 24px);
+  right: calc(-50% - 6px);
 
   height: 1px;
 
@@ -2035,7 +2126,7 @@
 .workflow-item p {
   max-width: 190px;
 
-  margin: 0;
+  margin: 0 auto;
 
   color: var(--leave-muted);
 
@@ -2287,6 +2378,10 @@
     max-width: 700px;
   }
 
+  .about-simple-grid {
+    grid-template-columns: 1fr;
+  }
+
 }
 
 /* =========================================================
@@ -2513,10 +2608,14 @@
     grid-template-columns: 48px 1fr;
 
     column-gap: 18px;
+
+    text-align: left;
   }
 
   .workflow-top {
     grid-row: 1 / span 2;
+
+    justify-content: flex-start;
 
     margin: 0;
   }
@@ -2548,6 +2647,8 @@
     align-self: start;
 
     max-width: none;
+
+    margin: 0;
   }
 
   /* CTA */
