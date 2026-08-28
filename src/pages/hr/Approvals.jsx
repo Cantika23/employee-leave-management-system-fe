@@ -1,7 +1,23 @@
 import { useEffect, useState } from 'react'
+import { HeartPulse, Plane, ScrollText, Sparkles, Calendar, Clock, Check, X, ShieldCheck, Paperclip } from 'lucide-react'
 import api from '../../api/axios'
 import { formatDate, initials } from '../../lib/format'
 import { useToast } from '../../context/ToastContext'
+
+const TYPE_STYLE = {
+  annual: { icon: Plane, color: '#0EA5E9', soft: '#e6f5fd' },
+  sick: { icon: HeartPulse, color: '#f43f5e', soft: '#fdecef' },
+  izin: { icon: ScrollText, color: '#f59e0b', soft: '#fef3e2' },
+}
+const DEFAULT_STYLE = { icon: Sparkles, color: '#8b5cf6', soft: '#f2edfd' }
+
+function resolveTypeStyle(label = '') {
+  const value = label.toLowerCase()
+  if (value.includes('sakit')) return TYPE_STYLE.sick
+  if (value.includes('izin')) return TYPE_STYLE.izin
+  if (value.includes('tahunan') || value.includes('annual')) return TYPE_STYLE.annual
+  return DEFAULT_STYLE
+}
 
 export default function Approvals() {
   const { push } = useToast()
@@ -57,6 +73,19 @@ export default function Approvals() {
     }
   }
 
+  if (loading) {
+    return (
+      <div>
+        <div className="page-head">
+          <div>
+            <h1>Persetujuan</h1>
+            <p>Memuat data...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="page-head">
@@ -68,10 +97,13 @@ export default function Approvals() {
         </div>
       </div>
 
-      {!loading && pending.length === 0 && (
-        <div className="card empty">
-          Tidak ada permohonan yang menunggu.
-          Kalender tim sedang seimbang.
+      {pending.length === 0 && (
+        <div
+          className="card empty"
+          style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+        >
+          <ShieldCheck size={18} style={{ color: '#94a3b8', flexShrink: 0 }} />
+          Tidak ada permohonan yang menunggu. Kalender tim sedang seimbang.
         </div>
       )}
 
@@ -81,37 +113,74 @@ export default function Approvals() {
           gap: 16,
         }}
       >
-        {pending.map((item) => (
-          <article
-            className="card panel"
-            key={item.id}
-          >
-            <div className="panel__head">
-              <div className="person">
-                <span className="avatar">
-                  {initials(item.employee)}
-                </span>
+        {pending.map((item) => {
+          const style = resolveTypeStyle(item.type)
+          const Icon = style.icon
 
-                <span>
-                  <strong>
-                    {item.employee}
-                  </strong>
+          return (
+            <article
+              className="card panel"
+              key={item.id}
+              style={{
+                position: 'relative',
+                borderRadius: 18,
+                boxShadow: '0 1px 2px rgba(16,24,40,0.04), 0 8px 24px -12px rgba(16,24,40,0.08)',
+              }}
+            >
+              <span
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 12,
+                  bottom: 12,
+                  width: 3,
+                  borderRadius: 4,
+                  background: style.color,
+                }}
+              />
+              <div className="panel__head" style={{ paddingLeft: 10 }}>
+                <div className="person">
+                  <span
+                    style={{
+                      display: 'grid',
+                      placeItems: 'center',
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      background: style.soft,
+                      color: style.color,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon size={16} />
+                  </span>
 
                   <span>
-                    {item.department}
-                  </span>
-                </span>
-              </div>
+                    <strong>
+                      {item.employee}
+                    </strong>
 
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => setSelectedItem(item)}
-              >
-                Lihat Detail
-              </button>
-            </div>
-          </article>
-        ))}
+                    <span>
+                      {item.department} · {item.type}
+                    </span>
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span className="badge badge--pending">
+                    Menunggu
+                  </span>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setSelectedItem(item)}
+                  >
+                    Lihat Detail
+                  </button>
+                </div>
+              </div>
+            </article>
+          )
+        })}
       </div>
 
 
@@ -136,6 +205,7 @@ export default function Approvals() {
               maxWidth: 760,
               borderRadius: 24,
               padding: 24,
+              boxShadow: '0 1px 2px rgba(16,24,40,0.04), 0 20px 48px -16px rgba(16,24,40,0.16)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -150,14 +220,22 @@ export default function Approvals() {
               }}
             >
               <div>
-                <div className="hint">
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: '0.08em',
+                    color: '#0EA5E9',
+                    textTransform: 'uppercase',
+                  }}
+                >
                   Detail Pengajuan
-                </div>
+                </span>
 
                 <div
                   className="person"
                   style={{
-                    marginTop: 8,
+                    marginTop: 10,
                   }}
                 >
                   <span className="avatar">
@@ -192,7 +270,9 @@ export default function Approvals() {
                     border: 'none',
                     background: 'transparent',
                     fontSize: 22,
+                    lineHeight: 1,
                     cursor: 'pointer',
+                    color: '#94a3b8',
                   }}
                   onClick={() => setSelectedItem(null)}
                 >
@@ -207,40 +287,72 @@ export default function Approvals() {
               className="grid-3"
               style={{
                 marginBottom: 18,
+                gap: 12,
               }}
             >
-              <div className="notice">
-                <div className="hint">
-                  Jenis
-                </div>
+              {(() => {
+                const style = resolveTypeStyle(selectedItem.type)
+                const Icon = style.icon
+                return (
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 10,
+                      alignItems: 'flex-start',
+                      padding: '12px 14px',
+                      borderRadius: 14,
+                      background: style.soft,
+                    }}
+                  >
+                    <Icon size={16} style={{ color: style.color, flexShrink: 0, marginTop: 1 }} />
+                    <div>
+                      <div className="hint">Jenis</div>
+                      <strong>{selectedItem.type}</strong>
+                    </div>
+                  </div>
+                )
+              })()}
 
-                <strong>
-                  {selectedItem.type}
-                </strong>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  alignItems: 'flex-start',
+                  padding: '12px 14px',
+                  borderRadius: 14,
+                  background: '#fbfbfc',
+                  border: '1px solid #eef0f3',
+                }}
+              >
+                <Calendar size={16} style={{ color: '#94a3b8', flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <div className="hint">Periode</div>
+                  <strong>
+                    {formatDate(selectedItem.from)}
+                    {' – '}
+                    {formatDate(selectedItem.to)}
+                  </strong>
+                </div>
               </div>
 
-
-              <div className="notice">
-                <div className="hint">
-                  Periode
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  alignItems: 'flex-start',
+                  padding: '12px 14px',
+                  borderRadius: 14,
+                  background: '#fbfbfc',
+                  border: '1px solid #eef0f3',
+                }}
+              >
+                <Clock size={16} style={{ color: '#94a3b8', flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <div className="hint">Durasi</div>
+                  <strong>
+                    {selectedItem.days} hari kerja
+                  </strong>
                 </div>
-
-                <strong>
-                  {formatDate(selectedItem.from)}
-                  {' – '}
-                  {formatDate(selectedItem.to)}
-                </strong>
-              </div>
-
-
-              <div className="notice">
-                <div className="hint">
-                  Durasi
-                </div>
-
-                <strong>
-                  {selectedItem.days} hari kerja
-                </strong>
               </div>
             </div>
 
@@ -248,10 +360,11 @@ export default function Approvals() {
             {/* Alasan */}
             <div
               style={{
-                border: '1px solid var(--line)',
+                border: '1px solid #eef0f3',
+                background: '#fbfbfc',
                 borderRadius: 16,
                 padding: 16,
-                marginBottom: 12,
+                marginBottom: 20,
               }}
             >
               <div className="hint">
@@ -269,30 +382,62 @@ export default function Approvals() {
             </div>
 
 
-            {/* Serah Terima */}
-            <div
-              style={{
-                border: '1px solid var(--line)',
-                borderRadius: 16,
-                padding: 16,
-                marginBottom: 20,
-              }}
-            >
-              <div className="hint">
-                Serah Terima Pekerjaan
-              </div>
-
-              <p
+            {/* Lampiran */}
+            {selectedItem.attachment && (
+              <div
                 style={{
-                  margin: '8px 0 0',
-                  lineHeight: 1.6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  border: '1px solid #eef0f3',
+                  background: '#fbfbfc',
+                  borderRadius: 16,
+                  padding: 16,
+                  marginBottom: 20,
                 }}
               >
-                {selectedItem.handover ||
-                  'Tidak ada informasi serah terima pekerjaan.'}
-              </p>
-            </div>
-
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <span
+                    style={{
+                      display: 'grid',
+                      placeItems: 'center',
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      background: '#e6f5fd',
+                      color: '#0EA5E9',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Paperclip size={16} />
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="hint">Lampiran</div>
+                    <strong
+                      style={{
+                        display: 'block',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: 320,
+                      }}
+                    >
+                      {selectedItem.attachmentName || 'Lampiran pengajuan'}
+                    </strong>
+                  </div>
+                </div>
+                <a
+                  href={selectedItem.attachment}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-outline btn-sm"
+                  style={{ flexShrink: 0 }}
+                >
+                  Lihat
+                </a>
+              </div>
+            )}
 
             {/* Action */}
             <div
@@ -308,7 +453,9 @@ export default function Approvals() {
                 onClick={() =>
                   decide(selectedItem.id, 'rejected')
                 }
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
+                <X size={14} />
                 Tolak
               </button>
 
@@ -318,7 +465,9 @@ export default function Approvals() {
                 onClick={() =>
                   decide(selectedItem.id, 'approved')
                 }
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
+                <Check size={14} />
                 Setujui
               </button>
             </div>

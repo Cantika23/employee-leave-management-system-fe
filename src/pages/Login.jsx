@@ -11,6 +11,7 @@ export default function Login() {
   const navigate = useNavigate()
   const [form, setForm] = useState({ email: '', password: '', remember: true })
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   function fill(account) {
     setForm((prev) => ({ ...prev, email: account.email, password: account.password }))
@@ -31,6 +32,7 @@ export default function Login() {
 
   return (
     <div className="auth">
+      {/* Showcase kiri */}
       <section
         className="auth__showcase"
         style={{
@@ -84,11 +86,18 @@ export default function Login() {
         </div>
       </section>
 
+      {/* Panel kanan */}
       <section className="auth__panel">
         <div className="auth-card">
-          <Logo size={40} showText />
-          <h1>Masuk  Sistem</h1>
-          <p className="hint">Gunakan akun korporat Anda untuk melanjutkan.</p>
+          {/* Header login di tengah */}
+          <div className="auth-header"
+               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+            <Logo size={40} showText />
+            <h1 style={{ marginTop: 12 }}>Masuk Sistem</h1>
+            <p className="hint">Gunakan akun korporat Anda untuk melanjutkan.</p>
+          </div>
+
+          {/* Form login */}
           <form onSubmit={onSubmit}>
             <div className="field">
               <label htmlFor="email">Email</label>
@@ -102,17 +111,47 @@ export default function Login() {
                 required
               />
             </div>
-            <div className="field">
+            <div className="field password-field">
               <label htmlFor="password">Kata sandi</label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="••••••••"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required
-              />
+              <div className="password-wrapper" style={{ position: 'relative' }}>
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  required
+                  style={{ paddingRight: 36 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: 8,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#888', // abu-abu
+                  }}
+                >
+                  {showPassword ? (
+                    // Eye-off icon
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5.52 0-10-4.48-10-10 0-2.21.72-4.25 1.94-5.94M6.1 6.1A10.94 10.94 0 0 1 12 4c5.52 0 10 4.48 10 10 0 2.21-.72 4.25-1.94 5.94M1 1l22 22" />
+                    </svg>
+                  ) : (
+                    // Eye icon
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
             <div className="auth-row">
               <label className="check">
@@ -130,6 +169,7 @@ export default function Login() {
               Masuk
             </button>
           </form>
+
           <div className="demo-box">
             Akun demo · sandi <b>aether123</b>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
@@ -140,6 +180,7 @@ export default function Login() {
               ))}
             </div>
           </div>
+
           <p className="auth-foot">
             Belum punya akses? <Link to="/register">Buat akun karyawan</Link>
           </p>

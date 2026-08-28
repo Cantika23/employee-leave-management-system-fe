@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   Bell,
   ClipboardCheck,
@@ -7,7 +7,6 @@ import {
   LogOut,
   Menu,
   PieChart,
-  Search,
   Settings,
   Users,
   FilePlus2,
@@ -29,6 +28,8 @@ const MANAGER_MENU = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true, group: 'Utama' },
   { to: '/app/approvals', label: 'Pengajuan Tim', icon: ClipboardCheck, group: 'Tim' },
   { to: '/app/leave/history', label: 'Riwayat Pengajuan', icon: History, group: 'Tim' },
+  { to: '/app/employees', label: 'Data Karyawan', icon: Users, group: 'Organisasi' },
+  { to: '/app/reports', label: 'Laporan', icon: PieChart, group: 'Organisasi' },
   { to: '/app/profile', label: 'Profil', icon: UserRound, group: 'Akun' },
 ]
 
@@ -39,7 +40,6 @@ const HR_MENU = [
   { to: '/app/approvals', label: 'Persetujuan', icon: ClipboardCheck, group: 'Tim' },
   { to: '/app/employees', label: 'Data Karyawan', icon: Users, group: 'Organisasi' },
   { to: '/app/reports', label: 'Laporan', icon: PieChart, group: 'Organisasi' },
-  { to: '/app/settings', label: 'Pengaturan', icon: Settings, group: 'Akun' },
   { to: '/app/profile', label: 'Profil', icon: UserRound, group: 'Akun' },
 ]
 
@@ -47,6 +47,17 @@ const MENU_BY_ROLE = {
   employee: EMPLOYEE_MENU,
   manager: MANAGER_MENU,
   hr: HR_MENU,
+}
+
+const PAGE_META = {
+  '/app': { title: '', subtitle: '' },
+  '/app/leave/apply': { title: 'Pengajuan Cuti', subtitle: 'Buat pengajuan cuti/izin/sakit baru' },
+  '/app/leave/history': { title: 'Riwayat Cuti', subtitle: 'Lihat riwayat pengajuan Anda' },
+  '/app/profile': { title: 'Profil', subtitle: 'Kelola informasi akun Anda' },
+  '/app/approvals': { title: 'Persetujuan', subtitle: 'Pengajuan tim menunggu keputusan' },
+  '/app/employees': { title: 'Data Karyawan', subtitle: 'Tambah & aktif/nonaktif' },
+  '/app/reports': { title: 'Laporan', subtitle: 'Ringkasan statistik cuti' },
+  '/app/settings': { title: 'Pengaturan', subtitle: 'Konfigurasi sistem' },
 }
 
 function initials(name = '') {
@@ -61,8 +72,10 @@ function initials(name = '') {
 export default function AppShell() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const pageMeta = PAGE_META[location.pathname] || { title: 'Dashboard', subtitle: '' }
   const [open, setOpen] = useState(false)
-  const [notes, setNotes] = useState(false)
+  const [notes, setNotes]  = useState(false)
   const [notifications, setNotifications] = useState([])
 
   useEffect(() => {
@@ -122,15 +135,25 @@ export default function AppShell() {
       </aside>
 
       <div>
-        <header className="topbar">
+        <header
+          className="topbar"
+          style={{
+            background: 'linear-gradient(90deg, #f7fbff 0%, #f7fbff 55%, #ffffff 100%)',
+            borderBottom: '1px solid #e2edf7',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button className="menu-btn" onClick={() => setOpen(true)} aria-label="Buka menu">
               <Menu size={18} />
             </button>
-            <label className="search">
-              <Search size={16} />
-              <input placeholder="Cari cuti, karyawan, atau laporan" />
-            </label>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 18, lineHeight: 1.2 }}>{pageMeta.title}</div>
+              {pageMeta.subtitle && (
+                <div className="hint" style={{ fontSize: 13 }}>
+                  {pageMeta.subtitle}
+                </div>
+              )}
+            </div>
           </div>
           <div className="topbar__right">
             <div className="rel">

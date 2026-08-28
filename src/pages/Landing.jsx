@@ -3,7 +3,6 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
-  FileText,
   History,
   ArrowRight,
   UserCheck,
@@ -11,37 +10,135 @@ import {
   WalletCards,
   Menu,
   X,
-  Plane,
-  CircleCheck,
+  Sparkles,
+  ChevronRight,
+  ChevronDown,
+  Users,
+  Zap,
+  Bell,
+  UserCog,
+  Mail,
+  MessageSquareWarning,
+  FileClock,
 } from 'lucide-react'
+
 import { useEffect, useRef, useState } from 'react'
 
 import Logo from '../components/Logo'
 import './landing.css'
 import api from '../api/axios'
 
+
+// ======================================================
+// FITUR
+// ======================================================
+
 const leaveFeatures = [
   {
     icon: CalendarDays,
+    accent: 'blue',
     title: 'Pengajuan Cuti',
     desc: 'Ajukan cuti secara online dengan periode dan alasan yang tercatat dalam sistem.',
   },
   {
     icon: UserCheck,
+    accent: 'green',
     title: 'Approval',
     desc: 'Pengajuan diteruskan kepada atasan untuk direview sesuai kewenangan.',
   },
   {
     icon: WalletCards,
-    title: 'Saldo Cuti',
-    desc: 'Pantau jumlah hak cuti, cuti terpakai, dan sisa cuti dengan lebih mudah.',
+    accent: 'amber',
+    title: 'Kuota Cuti',
+    desc: 'Pantau hak cuti, jumlah terpakai, dan sisa cuti secara lebih transparan.',
   },
   {
     icon: History,
+    accent: 'navy',
     title: 'Riwayat Pengajuan',
     desc: 'Lihat seluruh pengajuan cuti beserta status dan detail prosesnya.',
   },
+  {
+    icon: Bell,
+    accent: 'purple',
+    title: 'Notifikasi Real-time',
+    desc: 'Setiap perubahan status pengajuan langsung terpantau tanpa perlu menanyakan ke atasan.',
+  },
+  {
+    icon: Users,
+    accent: 'teal',
+    title: 'Kalender Tim',
+    desc: 'Lihat siapa saja yang sedang cuti agar jadwal dan koordinasi tim tetap rapi.',
+  },
 ]
+
+
+// ======================================================
+// BEFORE / AFTER
+// ======================================================
+
+const beforePoints = [
+  'Pengajuan dikirim lewat email, mudah tenggelam di inbox',
+  'Approval bolak-balik lewat balasan email',
+  'Sisa cuti dihitung manual dari histori email',
+  'Rekap bulanan disusun ulang satu per satu',
+]
+
+const afterPoints = [
+  'Semua pengajuan tersimpan rapi dalam sistem',
+  'Approval terstruktur sesuai alur kewenangan',
+  'Kuota cuti terpantau otomatis dan akurat',
+  'Riwayat & rekap tersedia kapan pun dibutuhkan',
+]
+
+
+// ======================================================
+// ROLE ACCESS
+// ======================================================
+
+const roleAccess = [
+  {
+    icon: Users,
+    title: 'Karyawan',
+    items: [
+      'Mengajukan cuti sesuai sisa kuota',
+      'Memantau status pengajuan secara real-time',
+      'Melihat riwayat cuti pribadi',
+    ],
+  },
+  {
+    icon: UserCheck,
+    title: 'Atasan',
+    items: [
+      'Meninjau pengajuan tim langsung',
+      'Menyetujui atau menolak dengan catatan',
+      'Melihat kalender cuti anggota tim',
+    ],
+  },
+  {
+    icon: WalletCards,
+    title: 'HR',
+    items: [
+      'Mengelola kebijakan dan jenis cuti',
+      'Memantau kuota seluruh karyawan',
+      'Mengekspor rekap untuk kebutuhan payroll',
+    ],
+  },
+  {
+    icon: UserCog,
+    title: 'Administrator',
+    items: [
+      'Mengatur akses dan peran pengguna',
+      'Mengawasi seluruh alur persetujuan',
+      'Menjaga konfigurasi sistem tetap sesuai',
+    ],
+  },
+]
+
+
+// ======================================================
+// WORKFLOW
+// ======================================================
 
 const leaveSteps = [
   {
@@ -52,7 +149,7 @@ const leaveSteps = [
   {
     number: '02',
     title: 'Kirim pengajuan',
-    desc: 'Lengkapi alasan lalu kirim pengajuan.',
+    desc: 'Lengkapi alasan kemudian kirim permohonan.',
   },
   {
     number: '03',
@@ -62,13 +159,42 @@ const leaveSteps = [
   {
     number: '04',
     title: 'Selesai',
-    desc: 'Status pengajuan dapat dipantau melalui sistem.',
+    desc: 'Pantau hasil pengajuan langsung melalui sistem.',
   },
 ]
 
-/* =========================================================
-   SCROLL REVEAL
-========================================================= */
+
+// ======================================================
+// FAQ
+// ======================================================
+
+const faqItems = [
+  {
+    q: 'Bagaimana cara mengajukan cuti di sistem ini?',
+    a: 'Masuk ke akun Anda, pilih menu pengajuan cuti, tentukan periode dan alasan, lalu kirim. Pengajuan akan otomatis diteruskan ke atasan untuk direview.',
+  },
+  {
+    q: 'Berapa lama proses persetujuan biasanya berlangsung?',
+    a: 'Waktu persetujuan tergantung kebijakan masing-masing tim, namun setiap perubahan status akan langsung terlihat di riwayat pengajuan begitu atasan memberikan keputusan.',
+  },
+  {
+    q: 'Apakah pengajuan yang sudah dikirim bisa dibatalkan?',
+    a: 'Selama pengajuan masih berstatus menunggu, Anda dapat membatalkannya sendiri melalui halaman riwayat pengajuan.',
+  },
+  {
+    q: 'Bagaimana jika kuota cuti saya terlihat tidak sesuai?',
+    a: 'Kuota dihitung otomatis dari histori pengajuan yang disetujui. Jika ada selisih, hubungi HR agar dapat ditinjau dan disesuaikan.',
+  },
+  {
+    q: 'Apakah data cuti saya aman dan hanya bisa diakses oleh pihak berwenang?',
+    a: 'Akses data diatur berdasarkan peran pengguna. Karyawan hanya dapat melihat datanya sendiri, sementara atasan dan HR hanya dapat mengakses data sesuai kewenangan masing-masing.',
+  },
+]
+
+
+// ======================================================
+// SCROLL REVEAL
+// ======================================================
 
 function useScrollReveal(rootRef) {
   useEffect(() => {
@@ -99,8 +225,8 @@ function useScrollReveal(rootRef) {
         })
       },
       {
-        threshold: 0.15,
-        rootMargin: '0px 0px -60px 0px',
+        threshold: 0.08,
+        rootMargin: '0px 0px -40px 0px',
       }
     )
 
@@ -114,205 +240,421 @@ function useScrollReveal(rootRef) {
   }, [rootRef])
 }
 
-/* =========================================================
-   LANDING
-========================================================= */
+
+// ======================================================
+// LANDING
+// ======================================================
 
 export default function Landing() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [activeNav, setActiveNav] = useState('')
+  const [openFaq, setOpenFaq] = useState(0)
 
-  /*
-   * Data employee
-   */
-  const [employees, setEmployees] = useState([])
-
-  /*
-   * Data summary
-   *
-   * Struktur dibuat sama seperti Dashboard.
-   */
-  const [summary, setSummary] = useState({
-    team_on_leave: [],
-    pending_count: 0,
-    monthly_request: [],
-    remaining_leave: 0,
-  })
+  const [leaveRequests, setLeaveRequests] = useState([])
+  const [loading, setLoading] = useState(true)
 
   const pageRef = useRef(null)
 
   useScrollReveal(pageRef)
 
-  /* =========================================================
-     LOAD DATA
-  ========================================================= */
+
+  // ====================================================
+  // NORMALISASI RESPONSE
+  // ====================================================
+
+  const normalizeArrayResponse = (response) => {
+    if (!response) return []
+
+    if (Array.isArray(response.data)) {
+      return response.data
+    }
+
+    if (Array.isArray(response.data?.data)) {
+      return response.data.data
+    }
+
+    return []
+  }
+
+
+  // ====================================================
+  // AMBIL DATA LANDING
+  // ====================================================
 
   useEffect(() => {
+    let mounted = true
+
     async function loadLandingData() {
       try {
-        const [
-          employeeRes,
-          summaryRes,
-        ] = await Promise.all([
-          api.get('/employees'),
-          api.get('/dashboard/summary'),
-        ])
+        setLoading(true)
 
-        /*
-         * -----------------------------------------------------
-         * EMPLOYEE
-         * -----------------------------------------------------
-         */
-
-        const employeeData = Array.isArray(
-          employeeRes.data
-        )
-          ? employeeRes.data
-          : employeeRes.data?.data || []
-
-        /*
-         * -----------------------------------------------------
-         * SUMMARY
-         * -----------------------------------------------------
-         *
-         * Dashboard menggunakan:
-         *
-         * setSummary(summaryRes.data)
-         *
-         * Jadi kita juga mengikuti struktur tersebut.
-         *
-         * Tetapi dibuat fleksibel kalau response API
-         * ternyata dibungkus dalam property "data".
-         */
-
-        const summaryData =
-          summaryRes.data?.data &&
-          typeof summaryRes.data.data === 'object'
-            ? summaryRes.data.data
-            : summaryRes.data
-
-        /*
-         * Pastikan team_on_leave selalu array.
-         */
-
-        const teamOnLeave = Array.isArray(
-          summaryData?.team_on_leave
-        )
-          ? summaryData.team_on_leave
-          : []
-
-        /*
-         * Simpan employee.
-         */
-
-        setEmployees(employeeData)
-
-        /*
-         * Simpan summary.
-         */
-
-        setSummary({
-          ...summaryData,
-          team_on_leave: teamOnLeave,
-        })
-
-        /*
-         * DEBUG
-         *
-         * Bisa dilihat di F12 > Console.
-         */
-
-        console.log(
-          'LANDING SUMMARY:',
-          summaryData
+        const response = await api.get(
+          '/landing/leave-requests'
         )
 
-        console.log(
-          'LANDING TEAM ON LEAVE:',
-          teamOnLeave
-        )
+        if (!mounted) return
 
-        console.log(
-          'LANDING TEAM ON LEAVE COUNT:',
-          teamOnLeave.length
-        )
+        const data = normalizeArrayResponse(response)
 
+        setLeaveRequests(data)
       } catch (error) {
         console.error(
-          'Gagal mengambil data landing page:',
-          error
+          'ERROR LANDING LEAVE REQUEST:',
+          error.response?.status,
+          error.response?.data || error.message
         )
 
-        console.error(
-          'Status:',
-          error.response?.status
-        )
-
-        console.error(
-          'Response:',
-          error.response?.data
-        )
-
-        /*
-         * Jangan membuat angka palsu.
-         *
-         * Kalau API gagal, tetap 0.
-         */
-
-        setSummary({
-          team_on_leave: [],
-          pending_count: 0,
-          monthly_request: [],
-          remaining_leave: 0,
-        })
-
-        setEmployees([])
+        if (mounted) {
+          setLeaveRequests([])
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false)
+        }
       }
     }
 
     loadLandingData()
+
+    return () => {
+      mounted = false
+    }
   }, [])
 
-  /* =========================================================
-     NAVBAR SCROLL
-  ========================================================= */
+
+  // ====================================================
+  // NAVBAR SCROLL + ACTIVE SECTION
+  // ====================================================
 
   useEffect(() => {
-    const onScroll = () => {
-      setScrolled(window.scrollY > 8)
+    const sectionIds = [
+      'fitur',
+      'peran',
+      'alur',
+      'faq',
+    ]
+
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 12)
+
+      const navbar =
+        document.querySelector('.landing-nav')
+
+      const navbarHeight =
+        navbar?.offsetHeight || 82
+
+      const scrollPosition =
+        window.scrollY + navbarHeight + 40
+
+      let currentSection = ''
+
+      sectionIds.forEach((id) => {
+        const section =
+          document.getElementById(id)
+
+        if (!section) return
+
+        if (
+          scrollPosition >= section.offsetTop
+        ) {
+          currentSection = id
+        }
+      })
+
+      setActiveNav(currentSection)
     }
 
-    onScroll()
+    handleScroll()
 
     window.addEventListener(
       'scroll',
-      onScroll,
-      {
-        passive: true,
-      }
+      handleScroll,
+      { passive: true }
+    )
+
+    window.addEventListener(
+      'resize',
+      handleScroll
     )
 
     return () => {
       window.removeEventListener(
         'scroll',
-        onScroll
+        handleScroll
+      )
+
+      window.removeEventListener(
+        'resize',
+        handleScroll
       )
     }
   }, [])
 
-  /* =========================================================
-     DATA HERO
-  ========================================================= */
 
-  const teamOnLeaveCount =
-    Array.isArray(summary.team_on_leave)
-      ? summary.team_on_leave.length
-      : 0
+  // ====================================================
+  // STATISTIK
+  // ====================================================
 
-  const totalEmployees =
-    Array.isArray(employees)
-      ? employees.length
-      : 0
+  const totalEmployees = new Set(
+    leaveRequests
+      .map((item) => item?.user_id)
+      .filter(Boolean)
+  ).size
+
+
+  const pendingCount = leaveRequests.filter(
+    (item) =>
+      String(
+        item?.status || ''
+      ).toLowerCase() === 'pending'
+  ).length
+
+
+  const approvedCount = leaveRequests.filter(
+    (item) =>
+      String(
+        item?.status || ''
+      ).toLowerCase() === 'approved'
+  ).length
+
+
+  // ====================================================
+  // TANGGAL HARI INI
+  // ====================================================
+
+  const getTodayDate = () => {
+    const now = new Date()
+
+    const year = now.getFullYear()
+
+    const month = String(
+      now.getMonth() + 1
+    ).padStart(2, '0')
+
+    const day = String(
+      now.getDate()
+    ).padStart(2, '0')
+
+    return `${year}-${month}-${day}`
+  }
+
+  const today = getTodayDate()
+
+
+  // ====================================================
+  // SEDANG CUTI
+  // ====================================================
+
+  const teamOnLeave = leaveRequests.filter(
+    (item) => {
+      const status = String(
+        item?.status || ''
+      ).toLowerCase()
+
+      if (status !== 'approved') {
+        return false
+      }
+
+      if (!item?.start_date) {
+        return false
+      }
+
+      const startDate = String(
+        item.start_date
+      ).slice(0, 10)
+
+      const endDate = String(
+        item.end_date || item.start_date
+      ).slice(0, 10)
+
+      return (
+        startDate <= today &&
+        endDate >= today
+      )
+    }
+  )
+
+  const teamOnLeaveCount = teamOnLeave.length
+
+
+  // ====================================================
+  // PENGAJUAN TERBARU
+  // ====================================================
+
+  const sortedLeaveRequests = [
+    ...leaveRequests,
+  ].sort((a, b) => {
+    if (a?.created_at && b?.created_at) {
+      return (
+        new Date(b.created_at) -
+        new Date(a.created_at)
+      )
+    }
+
+    return (
+      Number(b?.id || 0) -
+      Number(a?.id || 0)
+    )
+  })
+
+  const recentRequests =
+    sortedLeaveRequests.slice(0, 3)
+
+
+  // ====================================================
+  // HELPERS
+  // ====================================================
+
+  const getLeaveName = (req) => {
+    return (
+      req?.user?.name ||
+      req?.employee?.name ||
+      req?.user_name ||
+      req?.employee_name ||
+      req?.employee ||
+      req?.name ||
+      `User #${req?.user_id || '-'}`
+    )
+  }
+
+
+  const getLeaveType = (req) => {
+    return (
+      req?.leave_type?.name ||
+      req?.leaveType?.name ||
+      req?.leave_type_name ||
+      req?.type ||
+      'Cuti'
+    )
+  }
+
+
+  const getInitials = (name) => {
+    if (!name) return '?'
+
+    const words = name.trim().split(' ')
+
+    if (words.length === 1) {
+      return words[0].charAt(0).toUpperCase()
+    }
+
+    return (
+      words[0].charAt(0) +
+      words[1].charAt(0)
+    ).toUpperCase()
+  }
+
+
+  const getLeaveDate = (req) => {
+    if (!req?.start_date) {
+      return 'Tanggal tidak tersedia'
+    }
+
+    try {
+      const start = new Date(
+        `${String(req.start_date).slice(
+          0,
+          10
+        )}T00:00:00`
+      )
+
+      const end = req.end_date
+        ? new Date(
+            `${String(req.end_date).slice(
+              0,
+              10
+            )}T00:00:00`
+          )
+        : start
+
+      const startText =
+        start.toLocaleDateString(
+          'id-ID',
+          {
+            day: '2-digit',
+            month: 'short',
+          }
+        )
+
+      const endText =
+        end.toLocaleDateString(
+          'id-ID',
+          {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          }
+        )
+
+      return `${startText} - ${endText}`
+    } catch {
+      return `${req.start_date}`
+    }
+  }
+
+
+  const getLeaveStatus = (req) => {
+    const status = String(
+      req?.status || 'pending'
+    ).toLowerCase()
+
+    const labels = {
+      pending: 'Menunggu',
+      approved: 'Disetujui',
+      rejected: 'Ditolak',
+      cancelled: 'Dibatalkan',
+    }
+
+    return labels[status] || status
+  }
+
+
+  const toggleFaq = (index) => {
+    setOpenFaq((current) => (current === index ? -1 : index))
+  }
+
+
+  const handleNavClick = (event, sectionId) => {
+    event.preventDefault()
+
+    const section =
+      document.getElementById(sectionId)
+
+    if (!section) return
+
+    setActiveNav(sectionId)
+    setMenuOpen(false)
+
+    const navbar =
+      document.querySelector('.landing-nav')
+
+    const navbarHeight =
+      navbar?.offsetHeight || 82
+
+    const sectionTop =
+      section.getBoundingClientRect().top +
+      window.scrollY
+
+    const targetPosition =
+      sectionTop - navbarHeight - 20
+
+    window.scrollTo({
+      top: Math.max(0, targetPosition),
+      behavior: 'smooth',
+    })
+
+    window.history.replaceState(
+      null,
+      '',
+      `#${sectionId}`
+    )
+  }
+
+
+  // ====================================================
+  // RENDER
+  // ====================================================
 
   return (
     <div
@@ -320,16 +662,13 @@ export default function Landing() {
       ref={pageRef}
     >
 
-      {/* =====================================================
-          NAVBAR
-      ===================================================== */}
+      {/* ================= NAVBAR ================= */}
 
       <header
         className={`landing-nav ${
           scrolled ? 'is-scrolled' : ''
         }`}
       >
-
         <div className="container landing-nav-inner">
 
           <Logo size={40} />
@@ -338,29 +677,83 @@ export default function Landing() {
             className={`landing-links ${
               menuOpen ? 'open' : ''
             }`}
+            aria-label="Navigasi utama"
           >
-
             <a
               href="#fitur"
-              onClick={() => setMenuOpen(false)}
+              className={
+                activeNav === 'fitur'
+                  ? 'active'
+                  : ''
+              }
+              aria-current={
+                activeNav === 'fitur'
+                  ? 'page'
+                  : undefined
+              }
+              onClick={(event) =>
+                handleNavClick(event, 'fitur')
+              }
             >
               Fitur
             </a>
 
             <a
               href="#alur"
-              onClick={() => setMenuOpen(false)}
+              className={
+                activeNav === 'alur'
+                  ? 'active'
+                  : ''
+              }
+              aria-current={
+                activeNav === 'alur'
+                  ? 'page'
+                  : undefined
+              }
+              onClick={(event) =>
+                handleNavClick(event, 'alur')
+              }
             >
               Cara Kerja
             </a>
 
             <a
-              href="#tentang"
-              onClick={() => setMenuOpen(false)}
+              href="#peran"
+              className={
+                activeNav === 'peran'
+                  ? 'active'
+                  : ''
+              }
+              aria-current={
+                activeNav === 'peran'
+                  ? 'page'
+                  : undefined
+              }
+              onClick={(event) =>
+                handleNavClick(event, 'peran')
+              }
             >
-              Tentang Sistem
+              Hak Akses
             </a>
 
+            <a
+              href="#faq"
+              className={
+                activeNav === 'faq'
+                  ? 'active'
+                  : ''
+              }
+              aria-current={
+                activeNav === 'faq'
+                  ? 'page'
+                  : undefined
+              }
+              onClick={(event) =>
+                handleNavClick(event, 'faq')
+              }
+            >
+              FAQ
+            </a>
           </nav>
 
           <div className="landing-nav-actions">
@@ -369,8 +762,7 @@ export default function Landing() {
               to="/login"
               className="btn btn-primary btn-sm"
             >
-              Masuk
-              <ArrowRight size={15} />
+              Masuk Sistem
             </Link>
 
             <button
@@ -383,58 +775,44 @@ export default function Landing() {
               }
               aria-label="Toggle navigation"
             >
-
               {menuOpen ? (
-                <X size={22} />
+                <X size={21} />
               ) : (
-                <Menu size={22} />
+                <Menu size={21} />
               )}
-
             </button>
 
           </div>
 
         </div>
-
       </header>
 
 
-      {/* =====================================================
-          HERO
-      ===================================================== */}
+      {/* ================= HERO ================= */}
 
       <section className="landing-hero">
 
         <div className="container hero-grid">
 
-          {/* LEFT */}
-
           <div className="hero-copy">
 
             <span className="hero-eyebrow">
-
-              <CalendarDays size={14} />
-
-              MITRAL · Employee Management
-
+              <Sparkles size={14} />
+              MITRAL · Employee Leave
             </span>
 
             <h1>
-
               Employee
               <br />
-
-              <span>
-                Management System
-              </span>
-
+              Management<span> System </span>
             </h1>
 
             <p>
-              Sistem pengelolaan cuti karyawan yang membantu
-              proses pengajuan, approval, pemantauan saldo,
-              hingga riwayat cuti menjadi lebih mudah dan
-              terorganisir.
+              Sistem pengelolaan cuti karyawan
+              yang membantu proses pengajuan,
+              approval, pemantauan cuti,
+              hingga riwayat cuti menjadi
+              lebih mudah dan terorganisir.
             </p>
 
             <div className="hero-actions">
@@ -444,240 +822,258 @@ export default function Landing() {
                 className="btn btn-primary btn-lg"
               >
                 Ajukan Cuti
-
-                <ArrowRight size={18} />
-
+                <ArrowRight size={17} />
               </Link>
-
-            </div>
-
-            <div className="hero-trust">
-
-              <div className="trust-item">
-
-                <CheckCircle2 size={16} />
-
-                <span>
-                  Pengajuan online
-                </span>
-
-              </div>
-
-              <div className="trust-item">
-
-                <CheckCircle2 size={16} />
-
-                <span>
-                  Approval terstruktur
-                </span>
-
-              </div>
-
-              <div className="trust-item">
-
-                <CheckCircle2 size={16} />
-
-                <span>
-                  Riwayat tersimpan
-                </span>
-
-              </div>
 
             </div>
 
           </div>
 
-
-          {/* RIGHT */}
+          {/* HERO DASHBOARD */}
 
           <div className="hero-visual">
 
+            <span className="orbital-dot dot-one" />
+            <span className="orbital-dot dot-two" />
+            <span className="orbital-dot dot-three" />
+
             <div className="leave-dashboard">
 
-              {/* Dashboard top */}
+              <div className="dashboard-header">
 
-              <div className="leave-dashboard-top">
+                <div className="dashboard-header-left">
 
-                <div>
-
-                  <span className="dashboard-label">
-                    Leave Overview
+                  <span className="live-badge">
+                    <span className="pulse-dot" />
+                    Live
                   </span>
 
                   <h3>
-                    Pengelolaan Cuti
+                    Leave Overview
                   </h3>
 
                 </div>
 
-                <div className="dashboard-icon">
-
-                  <CalendarDays size={20} />
-
+                <div className="header-icon">
+                  <CalendarDays size={18} />
                 </div>
 
               </div>
 
 
-              {/* Balance */}
+              <div className="dashboard-body">
 
-              <div className="leave-balance">
+                <div className="dashboard-stats">
 
-                <div className="balance-main">
+                  <div className="dashboard-stat-card">
 
-                  <span>
-                    Tim sedang cuti
-                  </span>
-
-                  <strong>
-
-                    {teamOnLeaveCount}
-
-                    <small>
-                      orang
-                    </small>
-
-                  </strong>
-
-                </div>
-
-
-                <div className="balance-ring">
-
-                  <span>
-                    {teamOnLeaveCount}
-                  </span>
-
-                  <small>
-                    / {totalEmployees}
-                  </small>
-
-                </div>
-
-              </div>
-
-
-              {/* Statistics */}
-
-              <div className="leave-stats">
-
-                <div className="leave-stat">
-
-                  <div className="stat-icon used">
-
-                    <Plane size={16} />
-
-                  </div>
-
-                  <div>
-
-                    <span>
-                      Terpakai
-                    </span>
+                    <Users
+                      size={14}
+                      className="stat-icon-mini"
+                    />
 
                     <strong>
-                      4 Hari
+                      {loading
+                        ? '...'
+                        : totalEmployees}
                     </strong>
 
-                  </div>
-
-                </div>
-
-
-                <div className="leave-stat">
-
-                  <div className="stat-icon pending">
-
-                    <Clock3 size={16} />
+                    <span>
+                      Karyawan
+                    </span>
 
                   </div>
 
-                  <div>
+
+                  <div className="dashboard-stat-card">
+
+                    <CalendarDays
+                      size={14}
+                      className="stat-icon-mini"
+                    />
+
+                    <strong>
+                      {loading
+                        ? '...'
+                        : teamOnLeaveCount}
+                    </strong>
+
+                    <span>
+                      Sedang Cuti
+                    </span>
+
+                  </div>
+
+
+                  <div className="dashboard-stat-card pending">
+
+                    <Clock3
+                      size={14}
+                      className="stat-icon-mini"
+                    />
+
+                    <strong>
+                      {loading
+                        ? '...'
+                        : pendingCount}
+                    </strong>
 
                     <span>
                       Menunggu
                     </span>
 
-                    <strong>
-                      {summary.pending_count}
-                      {' '}
-                      Pengajuan
-                    </strong>
-
                   </div>
 
-                </div>
 
-              </div>
+                  <div className="dashboard-stat-card approved">
 
-
-              {/* Recent request */}
-
-              <div className="recent-request">
-
-                <div className="recent-heading">
-
-                  <span>
-                    Pengajuan terbaru
-                  </span>
-
-                  <span className="view-all">
-                    Lihat semua
-                  </span>
-
-                </div>
-
-
-                <div className="request-item">
-
-                  <div className="request-icon">
-
-                    <FileText size={17} />
-
-                  </div>
-
-                  <div className="request-content">
+                    <CheckCircle2
+                      size={14}
+                      className="stat-icon-mini"
+                    />
 
                     <strong>
-                      Cuti Tahunan
+                      {loading
+                        ? '...'
+                        : approvedCount}
                     </strong>
 
                     <span>
-                      12 Sep – 13 Sep 2026
+                      Disetujui
                     </span>
 
                   </div>
 
-                  <span className="status-pending">
-                    Menunggu
-                  </span>
-
                 </div>
 
 
-                <div className="request-item">
+                <div className="dashboard-recent">
 
-                  <div className="request-icon success">
-
-                    <CircleCheck size={17} />
-
-                  </div>
-
-                  <div className="request-content">
-
-                    <strong>
-                      Cuti Tahunan
-                    </strong>
+                  <div className="recent-header">
 
                     <span>
-                      21 Agu – 22 Agu 2026
+                      Pengajuan Terbaru
+                    </span>
+
+                    <span className="view-link">
+                      Lihat semua
+                      <ChevronRight size={12} />
                     </span>
 
                   </div>
 
-                  <span className="status-approved">
-                    Disetujui
-                  </span>
+
+                  {loading ? (
+
+                    <div className="request-row">
+
+                      <div className="req-avatar">
+                        ...
+                      </div>
+
+                      <div className="req-info">
+                        <strong>
+                          Memuat data
+                        </strong>
+
+                        <span>
+                          Mengambil pengajuan
+                        </span>
+                      </div>
+
+                    </div>
+
+                  ) : recentRequests.length > 0 ? (
+
+                    recentRequests.map((req) => {
+
+                      const status = String(
+                        req?.status || ''
+                      ).toLowerCase()
+
+                      const isApproved =
+                        status === 'approved'
+
+                      const isPending =
+                        status === 'pending'
+
+                      return (
+
+                        <div
+                          className="request-row"
+                          key={
+                            req?.id ||
+                            req?.code
+                          }
+                        >
+
+                          <div
+                            className={`req-avatar ${
+                              isApproved
+                                ? 'approved'
+                                : isPending
+                                ? 'pending'
+                                : ''
+                            }`}
+                          >
+                            {getInitials(
+                              getLeaveName(req)
+                            )}
+                          </div>
+
+                          <div className="req-info">
+
+                            <strong>
+                              {getLeaveName(req)}
+                            </strong>
+
+                            <span>
+                              {getLeaveType(req)}
+                              {' · '}
+                              {getLeaveDate(req)}
+                            </span>
+
+                          </div>
+
+                          <span
+                            className={`req-status ${
+                              isApproved
+                                ? 'approved'
+                                : isPending
+                                ? 'pending'
+                                : ''
+                            }`}
+                          >
+                            {getLeaveStatus(req)}
+                          </span>
+
+                        </div>
+                      )
+                    })
+
+                  ) : (
+
+                    <div className="request-row">
+
+                      <div className="req-avatar">
+                        -
+                      </div>
+
+                      <div className="req-info">
+
+                        <strong>
+                          Belum ada pengajuan
+                        </strong>
+
+                        <span>
+                          Data cuti akan muncul di sini
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                  )}
 
                 </div>
 
@@ -686,25 +1082,26 @@ export default function Landing() {
             </div>
 
 
-            {/* Floating card */}
-
             <div className="leave-floating-card">
 
               <div className="floating-check">
-
-                <CheckCircle2 size={18} />
-
+                <CheckCircle2 size={17} />
               </div>
 
-              <div>
+              <div className="card-text">
 
                 <strong>
                   Pengajuan disetujui
                 </strong>
 
                 <span>
-                  Cuti kamu telah disetujui
+                  Status dapat dipantau secara langsung
                 </span>
+
+                <small>
+                  <Clock3 size={10} />
+                  Sistem cuti online
+                </small>
 
               </div>
 
@@ -717,9 +1114,7 @@ export default function Landing() {
       </section>
 
 
-      {/* =====================================================
-          QUICK BENEFIT
-      ===================================================== */}
+      {/* ================= BENEFITS ================= */}
 
       <section className="leave-benefits">
 
@@ -730,13 +1125,10 @@ export default function Landing() {
             <div className="benefit-item">
 
               <div className="benefit-icon">
-
-                <CalendarDays size={19} />
-
+                <Zap size={19} />
               </div>
 
               <div>
-
                 <strong>
                   Ajukan kapan saja
                 </strong>
@@ -744,7 +1136,6 @@ export default function Landing() {
                 <span>
                   Tidak perlu proses manual
                 </span>
-
               </div>
 
             </div>
@@ -756,13 +1147,10 @@ export default function Landing() {
             <div className="benefit-item">
 
               <div className="benefit-icon">
-
                 <Clock3 size={19} />
-
               </div>
 
               <div>
-
                 <strong>
                   Status transparan
                 </strong>
@@ -770,7 +1158,6 @@ export default function Landing() {
                 <span>
                   Pantau proses pengajuan
                 </span>
-
               </div>
 
             </div>
@@ -782,13 +1169,10 @@ export default function Landing() {
             <div className="benefit-item">
 
               <div className="benefit-icon">
-
                 <ShieldCheck size={19} />
-
               </div>
 
               <div>
-
                 <strong>
                   Akses terkontrol
                 </strong>
@@ -796,7 +1180,6 @@ export default function Landing() {
                 <span>
                   Sesuai role pengguna
                 </span>
-
               </div>
 
             </div>
@@ -807,89 +1190,77 @@ export default function Landing() {
 
       </section>
 
-
-      {/* =====================================================
-          FEATURES
-      ===================================================== */}
+      {/* ================= FEATURES ================= */}
 
       <section
         id="fitur"
-        className="landing-section"
+        className="landing-section feature-section"
       >
 
         <div className="container">
 
-          <div className="section-head left reveal">
+          <div className="feature-heading reveal">
 
-            <div>
+            <div className="feature-heading-left">
 
               <span className="section-kicker">
                 FITUR UTAMA
               </span>
 
               <h2>
-
-                Sistem pengelolaan cuti
+                Kelola pengajuan cuti,
                 <br />
-                yang terstruktur.
-
+                jadi lebih mudah.
               </h2>
 
             </div>
 
-            <p>
-              Memudahkan proses pengajuan, persetujuan,
-              pemantauan saldo, serta riwayat cuti karyawan.
-            </p>
+
+            <div className="feature-heading-right">
+
+              <p>
+                Kelola pengajuan, persetujuan,
+                kuota, dan riwayat cuti dalam
+                satu alur kerja yang lebih
+                sederhana dan transparan.
+              </p>
+
+            </div>
 
           </div>
 
 
-          <div className="feature-grid leave-feature-grid">
+          <div className="feature-grid">
 
-            {leaveFeatures.map(
-              (item, index) => {
+            {leaveFeatures.map((item, index) => {
 
-                const Icon = item.icon
+              const Icon = item.icon
 
-                return (
-                  <article
-                    key={item.title}
-                    className="leave-feature-card reveal"
-                    style={{
-                      transitionDelay:
-                        `${index * 70}ms`,
-                    }}
-                  >
+              return (
 
-                    <div className="feature-number">
-                      0{index + 1}
-                    </div>
+                <article
+                  key={item.title}
+                  className={`feature-card accent-${item.accent} reveal`}
+                  style={{
+                    transitionDelay: `${index * 60}ms`,
+                  }}
+                >
 
-                    <div className="feature-icon">
+                  <div className="feature-card-icon">
+                    <Icon size={20} />
+                  </div>
 
-                      <Icon size={21} />
+                  <h3>
+                    {item.title}
+                  </h3>
 
-                    </div>
+                  <p>
+                    {item.desc}
+                  </p>
 
-                    <h3>
-                      {item.title}
-                    </h3>
-
-                    <p>
-                      {item.desc}
-                    </p>
-
-                    <span className="feature-arrow">
-
-                      <ArrowRight size={16} />
-
-                    </span>
-
-                  </article>
-                )
-              }
-            )}
+                </article>
+              )
+            })}
 
           </div>
 
@@ -898,94 +1269,70 @@ export default function Landing() {
       </section>
 
 
-      {/* =====================================================
-          ABOUT
-      ===================================================== */}
+      {/* ================= ROLE ACCESS ================= */}
 
       <section
-        id="tentang"
-        className="leave-about"
+        id="peran"
+        className="role-section"
       >
 
-        <div className="container about-centered">
+        <div className="container">
 
-          <div className="about-centered-head reveal">
+          <div className="role-heading reveal">
 
-            <span className="section-kicker center">
-              TENTANG SISTEM
+            <span className="section-kicker">
+              HAK AKSES
             </span>
 
             <h2>
-              Tentang Sistem
+              Satu sistem,
+              <br />
+              peran yang jelas untuk semua.
             </h2>
 
             <p>
-              Aplikasi ini dipakai secara internal untuk
-              menggantikan pengajuan cuti manual lewat chat
-              atau kertas, sehingga seluruh proses tercatat
-              rapi dan mudah ditelusuri kapan saja dibutuhkan.
+              Karyawan, atasan, HR, dan
+              administrator memiliki akses
+              sesuai kebutuhan dan kewenangan
+              masing-masing.
             </p>
 
           </div>
 
 
-          <div className="about-simple-grid">
+          <div className="role-grid">
 
-            <div className="about-simple-card reveal">
+            {roleAccess.map((role, index) => {
 
-              <h3>
-                Tujuan
-              </h3>
+              const Icon = role.icon
 
-              <p>
-                Menggantikan pengajuan cuti manual lewat chat
-                atau kertas dengan satu alur digital, mulai
-                dari pengajuan sampai rekap akhir bulan.
-              </p>
+              return (
 
-            </div>
+                <article
+                  key={role.title}
+                  className="role-card reveal"
+                  style={{
+                    transitionDelay: `${index * 80}ms`,
+                  }}
+                >
 
+                  <div className="role-icon">
+                    <Icon size={21} />
+                  </div>
 
-            <div
-              className="about-simple-card reveal"
-              style={{
-                transitionDelay: '80ms',
-              }}
-            >
+                  <h3>
+                    {role.title}
+                  </h3>
 
-              <h3>
-                Pengguna
-              </h3>
+                  <ul>
+                    {role.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
 
-              <p>
-                Karyawan mengajukan cuti, Atasan Langsung
-                menyetujui, sementara HR dan Administrator
-                memantau serta mengelola data secara
-                keseluruhan.
-              </p>
-
-            </div>
-
-
-            <div
-              className="about-simple-card reveal"
-              style={{
-                transitionDelay: '160ms',
-              }}
-            >
-
-              <h3>
-                Keamanan Akses
-              </h3>
-
-              <p>
-                Masuk hanya dengan akun resmi perusahaan.
-                Data cuti seorang karyawan hanya terlihat
-                oleh dirinya sendiri dan pihak yang berwenang
-                menyetujuinya.
-              </p>
-
-            </div>
+                </article>
+              )
+            })}
 
           </div>
 
@@ -994,9 +1341,7 @@ export default function Landing() {
       </section>
 
 
-      {/* =====================================================
-          WORKFLOW
-      ===================================================== */}
+      {/* ================= WORKFLOW ================= */}
 
       <section
         id="alur"
@@ -1005,20 +1350,21 @@ export default function Landing() {
 
         <div className="container">
 
-          <div className="section-head reveal">
+          <div className="workflow-heading reveal">
 
             <span className="section-kicker">
-              CARA KERJA
-            </span>
+                CARA KERJA
+              </span>
 
-            <h2>
-              Dari pengajuan sampai selesai.
-            </h2>
-
+              <h2>
+                Proses pengajuan cuti,
+                <br />
+                dalam empat langkah mudah.
+              </h2>
             <p>
-              Proses cuti dibuat sederhana sehingga
-              karyawan dapat mengajukan dan memantau
-              status cuti dengan lebih mudah.
+              Pengajuan cuti dibuat singkat
+              tanpa menghilangkan proses
+              persetujuan dan pencatatan.
             </p>
 
           </div>
@@ -1029,27 +1375,20 @@ export default function Landing() {
             {leaveSteps.map(
               (step, index) => (
 
-                <div
+                <article
                   key={step.number}
                   className="workflow-item reveal"
                   style={{
                     transitionDelay:
-                      `${index * 70}ms`,
+                      `${index * 80}ms`,
                   }}
                 >
 
-                  <div className="workflow-top">
-
-                    <span className="workflow-number">
-                      {step.number}
-                    </span>
-
-                    {index !==
-                      leaveSteps.length - 1 && (
-                      <span className="workflow-line" />
-                    )}
-
+                  <div className="workflow-number">
+                    {step.number}
                   </div>
+
+                  <div className="workflow-line" />
 
                   <h3>
                     {step.title}
@@ -1059,25 +1398,20 @@ export default function Landing() {
                     {step.desc}
                   </p>
 
-                </div>
-
+                </article>
               )
             )}
 
           </div>
 
 
-          {/* CTA */}
-
           <div className="leave-cta reveal">
 
-            <div className="cta-content">
+            <div className="cta-left">
 
-              <span className="cta-icon">
-
-                <CalendarDays size={21} />
-
-              </span>
+              <div className="cta-icon">
+                <CalendarDays size={23} />
+              </div>
 
               <div>
 
@@ -1087,22 +1421,20 @@ export default function Landing() {
 
                 <p>
                   Masuk menggunakan akun resmi
-                  yang telah diberikan Administrator.
+                  perusahaan.
                 </p>
 
               </div>
 
             </div>
 
+
             <Link
               to="/login"
               className="btn btn-primary btn-lg"
             >
-
               Masuk ke sistem
-
-              <ArrowRight size={18} />
-
+              <ArrowRight size={17} />
             </Link>
 
           </div>
@@ -1112,32 +1444,146 @@ export default function Landing() {
       </section>
 
 
-      {/* =====================================================
-          FOOTER
-      ===================================================== */}
+      {/* ================= FAQ ================= */}
 
-      <footer className="landing-footer">
+      <section
+        id="faq"
+        className="faq-section"
+      >
 
-        <div className="container landing-footer-inner">
+        <div className="container faq-layout">
 
-          <div className="footer-brand">
+          <div className="faq-heading reveal">
 
-            <Logo
-              size={34}
-              textColor="#ffffff"
-            />
+            <span className="section-kicker">
+              PERTANYAAN UMUM
+            </span>
+
+            <h2>
+              Apakah ada yang
+              <br />
+              ingin ditanyakan?
+            </h2>
+
+            <p>
+              Beberapa hal yang paling sering
+              ditanyakan seputar penggunaan
+              sistem cuti ini.
+            </p>
 
           </div>
 
-          <div className="footer-right">
 
-            <span>
-              Internal Employee System
-            </span>
+          <div className="faq-list reveal">
 
-            <span>
-              © 2026 MITRAL
-            </span>
+            {faqItems.map((item, index) => {
+
+              const isOpen = openFaq === index
+
+              return (
+
+                <div
+                  key={item.q}
+                  className={`faq-item ${
+                    isOpen ? 'is-open' : ''
+                  }`}
+                >
+
+                  <button
+                    type="button"
+                    className="faq-question"
+                    onClick={() => toggleFaq(index)}
+                    aria-expanded={isOpen}
+                  >
+                    <span>{item.q}</span>
+
+                    <span className="faq-question-icon">
+                      <ChevronDown size={15} />
+                    </span>
+                  </button>
+
+                  <div className="faq-answer">
+                    <div className="faq-answer-inner">
+                      <p>{item.a}</p>
+                    </div>
+                  </div>
+
+                </div>
+              )
+            })}
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* ================= FOOTER ================= */}
+
+      <footer className="landing-footer">
+
+        <div className="container">
+
+          <div className="footer-top">
+
+            <div className="footer-brand">
+
+              <Logo
+                size={35}
+                textColor="#ffffff"
+              />
+
+            </div>
+
+            <div className="footer-col">
+              <h4>Produk</h4>
+              <ul>
+                <li><a href="#fitur">Fitur</a></li>
+                <li><a href="#alur">Cara Kerja</a></li>
+                <li><a href="#peran">Hak Akses</a></li>
+              </ul>
+            </div>
+
+            <div className="footer-col">
+              <h4>Sistem</h4>
+              <ul>
+                <li>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <ShieldCheck size={13} /> Keamanan Data
+                  </span>
+                </li>
+                <li>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <FileClock size={13} /> Riwayat Tersimpan
+                  </span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="footer-col">
+              <h4>Bantuan</h4>
+              <ul>
+                <li><a href="#faq">FAQ</a></li>
+                <li>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <MessageSquareWarning size={13} /> Hubungi HR
+                  </span>
+                </li>
+              </ul>
+            </div>
+
+          </div>
+
+          <div className="landing-footer-inner">
+
+            <div className="footer-right">
+
+              <span>
+                © 2026 MITRAL
+              </span>
+
+            </div>
 
           </div>
 
