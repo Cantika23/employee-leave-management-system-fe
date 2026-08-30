@@ -318,7 +318,20 @@ export default function LeaveHistory() {
 
                   <td>
                     <div className="person">
-                      <span className="avatar">
+                      <span
+                        className="avatar"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          textAlign: 'center',
+                          width: 36,
+                          height: 36,
+                          borderRadius: '50%',
+                          flexShrink: 0,
+                          lineHeight: 1,
+                        }}
+                      >
                         {initials(row.employee || user.name)}
                       </span>
 
