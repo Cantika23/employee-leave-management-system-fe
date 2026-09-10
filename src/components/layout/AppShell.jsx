@@ -26,9 +26,9 @@ const EMPLOYEE_MENU = [
 
 const MANAGER_MENU = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true, group: 'Utama' },
+  { to: '/app/leave/apply', label: 'Pengajuan Cuti', icon: FilePlus2, group: 'Cuti' },
   { to: '/app/approvals', label: 'Pengajuan Tim', icon: ClipboardCheck, group: 'Tim' },
   { to: '/app/leave/history', label: 'Riwayat Pengajuan', icon: History, group: 'Tim' },
-  { to: '/app/employees', label: 'Data Karyawan', icon: Users, group: 'Organisasi' },
   { to: '/app/reports', label: 'Laporan', icon: PieChart, group: 'Organisasi' },
   { to: '/app/profile', label: 'Profil', icon: UserRound, group: 'Akun' },
 ]
@@ -79,10 +79,17 @@ export default function AppShell() {
   const [notifications, setNotifications] = useState([])
 
   useEffect(() => {
-    api
-      .get('/notifications')
-      .then((res) => setNotifications(res.data))
-      .catch(() => {})
+    const loadNotif = () => {
+      api.get('/notifications')
+        .then(res => setNotifications(res.data))
+        .catch(() => {})
+    }
+
+    loadNotif()
+
+    const interval = setInterval(loadNotif, 15000)
+
+    return () => clearInterval(interval)
   }, [])
 
   const items = MENU_BY_ROLE[user.role] || EMPLOYEE_MENU
@@ -138,9 +145,12 @@ export default function AppShell() {
         <header
           className="topbar"
           style={{
-            background: 'linear-gradient(90deg, #f7fbff 0%, #f7fbff 55%, #ffffff 100%)',
-            borderBottom: '1px solid #e2edf7',
+            background: '#ffffff',
+            borderBottom: '1px solid rgba(37, 99, 235, 0.12)',
+            boxShadow: '0 1px 8px rgba(37, 99, 235, 0.04)',
+            backdropFilter: 'blur(10px)',
           }}
+
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button className="menu-btn" onClick={() => setOpen(true)} aria-label="Buka menu">
@@ -159,23 +169,21 @@ export default function AppShell() {
             <div className="rel">
               <button className="icon-btn" onClick={() => setNotes((v) => !v)} aria-label="Notifikasi">
                 <Bell size={18} />
-                {notifications.some((n) => n.unread) && <span className="dot-alert" />}
+                {notifications.some(item => item.unread) && <span className="dot-alert" />}
               </button>
               {notes && (
                 <div className="dropdown">
                   {notifications.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        setNotes(false)
-                        if (item.unread) {
-                          api.patch(`/notifications/${item.id}/read`).catch(() => {})
-                          setNotifications((prev) =>
-                            prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n)),
-                          )
-                        }
-                      }}
-                    >
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setNotes(false)
+
+                          if (item.url) {
+                            navigate(item.url)
+                          }
+                        }}
+                      >
                       <strong>{item.title}</strong>
                       <div className="hint">{item.time}</div>
                     </button>

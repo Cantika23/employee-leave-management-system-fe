@@ -1,6 +1,6 @@
 export const DEMO_ACCOUNTS = [
   {
-    email: 'yuki.t@example.com',
+    email: 'oktapermata28@gmail.com',
     password: 'aether123',
     role: 'hr',
     name: 'Citra Lestari',
@@ -12,7 +12,7 @@ export const DEMO_ACCOUNTS = [
     phone: '+62 812 4401 8890',
   },
   {
-    email: 'karen.d@example.net',
+    email: 'oktapermata10@gmail.com',
     password: 'aether123',
     role: 'manager',
     name: 'Dimas Prakoso',
@@ -24,7 +24,7 @@ export const DEMO_ACCOUNTS = [
     phone: '+62 811 9021 3345',
   },
   {
-    email: 'ivan.p@example.net',
+    email: 'permataoktasari@gmail.com',
     password: 'aether123',
     role: 'employee',
     name: 'Bagas Wiratama',

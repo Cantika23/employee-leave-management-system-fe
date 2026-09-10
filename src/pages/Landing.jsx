@@ -671,7 +671,7 @@ export default function Landing() {
       >
         <div className="container landing-nav-inner">
 
-          <Logo size={40} />
+          <Logo size={53} />
 
           <nav
             className={`landing-links ${
@@ -795,11 +795,6 @@ export default function Landing() {
         <div className="container hero-grid">
 
           <div className="hero-copy">
-
-            <span className="hero-eyebrow">
-              <Sparkles size={14} />
-              MITRAL · Employee Leave
-            </span>
 
             <h1>
               Employee

@@ -5,6 +5,7 @@ import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import NotFound from './pages/NotFound'
+import PublicApproval from './pages/PublicApproval'
 
 import EmployeeDashboard from './pages/employee/Dashboard'
 import EmployeeLeaveApply from './pages/employee/LeaveApply'
@@ -101,6 +102,10 @@ export default function App() {
           element={<ByRole employee={<EmployeeProfile />} manager={<ManagerProfile />} hr={<HrProfile />} />}
         />
       </Route>
+      <Route
+        path="/public/approval/:token"
+        element={<PublicApproval />}
+      />
       <Route path="*" element={<NotFound />} />
     </Routes>
   )

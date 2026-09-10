@@ -26,8 +26,8 @@ export function greeting() {
 
 export function statusLabel(status) {
   return {
-    pending: 'Menunggu HR',
-    pending_manager: 'Menunggu Manajer',
+    pending: 'Menunggu',
+    pending_manager: 'Menunggu',
     approved: 'Disetujui',
     rejected: 'Ditolak',
     active: 'Aktif',

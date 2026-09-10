@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Plane,
   Users,
   X,
 } from 'lucide-react'
@@ -31,6 +32,31 @@ const MONTHS = [
   'Oktober',
   'November',
   'Desember',
+]
+
+const DOW = ['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Mg']
+
+// Hari libur nasional 2026 sesuai SKB 3 Menteri (Kepmenag No. 1497/2025,
+// Kepmenaker No. 2/2025, KepmenPANRB No. 5/2025) — 17 hari libur nasional.
+// Dipakai sebagai sumber data "kalender nyata", bukan lagi dari API /holidays.
+const NATIONAL_HOLIDAYS_2026 = [
+  { date: '2026-01-01', name: 'Tahun Baru 2026 Masehi' },
+  { date: '2026-01-16', name: 'Isra Mikraj Nabi Muhammad SAW' },
+  { date: '2026-02-17', name: 'Tahun Baru Imlek 2577 Kongzili' },
+  { date: '2026-03-19', name: 'Hari Suci Nyepi (Tahun Baru Saka 1948)' },
+  { date: '2026-03-21', name: 'Hari Raya Idulfitri 1447 H' },
+  { date: '2026-03-22', name: 'Hari Raya Idulfitri 1447 H' },
+  { date: '2026-04-03', name: 'Wafat Yesus Kristus' },
+  { date: '2026-04-05', name: 'Kebangkitan Yesus Kristus (Paskah)' },
+  { date: '2026-05-01', name: 'Hari Buruh Internasional' },
+  { date: '2026-05-14', name: 'Kenaikan Yesus Kristus' },
+  { date: '2026-05-27', name: 'Hari Raya Iduladha 1447 H' },
+  { date: '2026-05-31', name: 'Hari Raya Waisak 2570 BE' },
+  { date: '2026-06-01', name: 'Hari Lahir Pancasila' },
+  { date: '2026-06-16', name: '1 Muharam Tahun Baru Islam 1448 H' },
+  { date: '2026-08-17', name: 'Hari Proklamasi Kemerdekaan RI' },
+  { date: '2026-08-25', name: 'Maulid Nabi Muhammad SAW' },
+  { date: '2026-12-25', name: 'Hari Raya Natal' },
 ]
 
 const AVATAR_PALETTE = [
@@ -86,27 +112,27 @@ function expandRangeKeys(from, to) {
 }
 
 /*
- * Modal kalender admin — gabungan hari libur + cuti tim dalam satu
- * grid bulanan, dengan navigasi bulan seperti kalender tim di
- * dashboard karyawan.
- *
- * - Hari libur: titik oranye di bawah angka tanggal.
- * - Cuti karyawan (status approved): avatar inisial bertumpuk.
+ * Modal kalender admin — menampilkan cuti tim dalam satu
+ * grid bulanan, dengan navigasi bulan + gaya interaksi yang sama
+ * dengan TeamCalendarModal di EmployeeDashboard (skeleton loading,
+ * hover/active state, styling weekend, tombol "kembali ke hari ini",
+ * ringkasan jumlah orang cuti per bulan).
  *
  * Fetch cuti tim dari GET /leave-requests/team. Kalau endpoint itu
  * belum ada di backend, fallback ke GET /leave-requests (biasanya
  * berisi semua pengajuan untuk role admin/HR). Kalau tetap gagal,
  * kalender tetap tampil normal, cuma tanpa marker cuti.
  */
-function CalendarModal({ onClose, holidays }) {
+function CalendarModal({ onClose }) {
   const [loading, setLoading] = useState(true)
   const [teamLeaves, setTeamLeaves] = useState([])
+  const [fallbackOnly, setFallbackOnly] = useState(false)
+  const [selectedKey, setSelectedKey] = useState(null)
   const [cursor, setCursor] = useState(() => {
     const d = new Date()
     d.setDate(1)
     return d
   })
-  const [selectedDay, setSelectedDay] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -118,7 +144,10 @@ function CalendarModal({ onClose, holidays }) {
       } catch {
         try {
           const res = await api.get('/leave-requests')
-          if (!cancelled) setTeamLeaves(res.data || [])
+          if (!cancelled) {
+            setTeamLeaves(res.data || [])
+            setFallbackOnly(true)
+          }
         } catch {
           if (!cancelled) setTeamLeaves([])
         }
@@ -134,16 +163,7 @@ function CalendarModal({ onClose, holidays }) {
     }
   }, [])
 
-  const holidaysByDay = useMemo(() => {
-    const map = {}
-    ;(holidays || []).forEach((item) => {
-      const key = toKey(new Date(item.date))
-      map[key] = item
-    })
-    return map
-  }, [holidays])
-
-  const leavesByDay = useMemo(() => {
+  const eventsByDay = useMemo(() => {
     const map = {}
 
     teamLeaves
@@ -165,6 +185,7 @@ function CalendarModal({ onClose, holidays }) {
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const prevDays = new Date(year, month, 0).getDate()
   const today = new Date()
+  const todayKey = toKey(today)
 
   const cells = []
   for (let i = startOffset; i > 0; i -= 1) {
@@ -181,8 +202,30 @@ function CalendarModal({ onClose, holidays }) {
     })
   }
 
-  const selectedHoliday = selectedDay ? holidaysByDay[toKey(selectedDay)] : null
-  const selectedLeaves = selectedDay ? leavesByDay[toKey(selectedDay)] || [] : []
+  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth()
+
+  // Ringkasan: berapa orang unik yang punya cuti approved di bulan yang sedang dilihat
+  const monthSummary = useMemo(() => {
+    const names = new Set()
+    let dayCount = 0
+    Object.entries(eventsByDay).forEach(([key, items]) => {
+      const [ky, km] = key.split('-').map(Number)
+      if (ky === year && km - 1 === month) {
+        dayCount += 1
+        items.forEach((item) => names.add(item.user_name))
+      }
+    })
+    return { people: names.size, days: dayCount }
+  }, [eventsByDay, year, month])
+
+  const selectedLeaves = selectedKey ? eventsByDay[selectedKey] || [] : []
+
+  function goToday() {
+    const d = new Date()
+    d.setDate(1)
+    setCursor(d)
+    setSelectedKey(null)
+  }
 
   return (
     <div
@@ -192,7 +235,8 @@ function CalendarModal({ onClose, holidays }) {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(15, 23, 42, 0.45)',
+        background: 'rgba(15, 23, 42, 0.5)',
+        backdropFilter: 'blur(2px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -200,314 +244,432 @@ function CalendarModal({ onClose, holidays }) {
         padding: 16,
       }}
     >
+      <style>{`
+        .cal-daybtn {
+          border: 1px solid transparent;
+          background: transparent;
+          cursor: pointer;
+          transition: background-color 120ms ease, border-color 120ms ease, transform 80ms ease;
+        }
+        .cal-daybtn:hover:not(.cal-daybtn--muted) {
+          background-color: rgba(37, 99, 235, 0.08);
+          border-color: rgba(37, 99, 235, 0.25);
+        }
+        .cal-daybtn:active:not(.cal-daybtn--muted) {
+          transform: scale(0.96);
+        }
+        .cal-daybtn--selected {
+          background-color: rgba(37, 99, 235, 0.14) !important;
+          border-color: #2563eb !important;
+        }
+        .cal-daybtn--weekend {
+          background-color: rgba(100, 116, 139, 0.05);
+        }
+        .cal-avatar {
+          transition: transform 120ms ease;
+        }
+        .cal-avatar:hover {
+          transform: translateY(-2px);
+          z-index: 5;
+        }
+        .cal-navbtn {
+          transition: background-color 120ms ease;
+        }
+        .cal-navbtn:hover {
+          background-color: rgba(100, 116, 139, 0.12);
+        }
+        .cal-skel {
+          background: linear-gradient(90deg, rgba(148,163,184,0.15) 25%, rgba(148,163,184,0.28) 37%, rgba(148,163,184,0.15) 63%);
+          background-size: 400% 100%;
+          animation: cal-shimmer 1.4s ease infinite;
+          border-radius: 8px;
+        }
+        @keyframes cal-shimmer {
+          0% { background-position: 100% 50%; }
+          100% { background-position: 0 50%; }
+        }
+      `}</style>
+
       <div
         className="card"
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
           maxWidth: 420,
-          maxHeight: '85vh',
-          padding: 18,
+          maxHeight: '88vh',
+          padding: 0,
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
         }}
       >
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'space-between',
-            marginBottom: 10,
+            padding: '18px 18px 14px',
+            borderBottom: '1px solid rgba(100, 116, 139, 0.14)',
             flexShrink: 0,
           }}
         >
-          <h2 style={{ margin: 0, fontSize: 17 }}>Kalender</h2>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                background: 'rgba(37, 99, 235, 0.12)',
+                color: '#2563eb',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <CalendarIcon size={18} />
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 16, lineHeight: 1.3 }}>Kalender Tim</h2>
+              <p className="hint" style={{ margin: '2px 0 0', fontSize: 12.5 }}>
+                Lihat siapa saja yang sedang cuti
+              </p>
+            </div>
+          </div>
 
           <button
             type="button"
             onClick={onClose}
             className="btn btn-ghost"
-            style={{ padding: 4 }}
+            style={{ padding: 4, flexShrink: 0 }}
             aria-label="Tutup"
           >
             <X size={16} />
           </button>
         </div>
 
-        <div
-          className="cal-head"
-          style={{ marginBottom: 8, flexShrink: 0 }}
-        >
-          <button
-            className="icon-btn"
-            onClick={() =>
-              setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
-            }
-            aria-label="Bulan sebelumnya"
+        <div style={{ padding: '14px 18px 18px', overflowY: 'auto' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 12,
+            }}
           >
-            <ChevronLeft size={16} />
-          </button>
-
-          <h2 style={{ fontSize: 14 }}>
-            {MONTHS[month]} {year}
-          </h2>
-
-          <button
-            className="icon-btn"
-            onClick={() =>
-              setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
-            }
-            aria-label="Bulan berikutnya"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            gap: 12,
-            marginBottom: 10,
-            fontSize: 11,
-            color: 'var(--muted)',
-            flexShrink: 0,
-          }}
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span
+            <button
+              type="button"
+              className="cal-navbtn"
+              onClick={() =>
+                setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
+              }
+              aria-label="Bulan sebelumnya"
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: '#f59e0b',
-                display: 'inline-block',
+                width: 30,
+                height: 30,
+                borderRadius: 8,
+                border: '1px solid rgba(100, 116, 139, 0.2)',
+                background: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
               }}
-            />
-            Hari libur
-          </span>
+            >
+              <ChevronLeft size={15} />
+            </button>
 
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span
+            <button
+              type="button"
+              onClick={goToday}
+              disabled={isCurrentMonth}
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: '#2563eb',
-                display: 'inline-block',
+                background: 'none',
+                border: 'none',
+                cursor: isCurrentMonth ? 'default' : 'pointer',
+                textAlign: 'center',
+                padding: 0,
               }}
-            />
-            Karyawan cuti
-          </span>
-        </div>
+            >
+              <div style={{ fontSize: 14.5, fontWeight: 600 }}>
+                {MONTHS[month]} {year}
+              </div>
+              {!isCurrentMonth && (
+                <div style={{ fontSize: 11, color: '#2563eb', marginTop: 1 }}>
+                  Kembali ke hari ini
+                </div>
+              )}
+            </button>
 
-        <div style={{ overflowY: 'auto' }}>
+            <button
+              type="button"
+              className="cal-navbtn"
+              onClick={() =>
+                setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
+              }
+              aria-label="Bulan berikutnya"
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 8,
+                border: '1px solid rgba(100, 116, 139, 0.2)',
+                background: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+
+          {fallbackOnly && !loading && (
+            <p
+              className="hint"
+              style={{
+                marginBottom: 10,
+                padding: '7px 9px',
+                borderRadius: 8,
+                fontSize: 12,
+                background: 'rgba(217, 119, 6, 0.12)',
+                color: '#b45309',
+              }}
+            >
+              Endpoint cuti tim khusus belum tersedia — kalender ini
+              menampilkan data dari daftar pengajuan umum.
+            </p>
+          )}
+
           {loading ? (
-            <p className="hint">Memuat data kalender…</p>
-          ) : (
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(7, 1fr)',
-                gap: 3,
+                gap: 4,
               }}
             >
-              {['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Mg'].map((dow, i) => (
-                <div
-                  key={i}
-                  className="hint"
-                  style={{ textAlign: 'center', fontSize: 10, paddingBottom: 4 }}
-                >
-                  {dow}
-                </div>
+              {Array.from({ length: 35 }).map((_, i) => (
+                <div key={i} className="cal-skel" style={{ aspectRatio: '1 / 1' }} />
               ))}
-
-              {cells.map((cell) => {
-                const key = toKey(cell.date)
-                const isToday = key === toKey(today)
-                const isSelected = selectedDay && key === toKey(selectedDay)
-                const holiday = holidaysByDay[key]
-                const dayLeaves = leavesByDay[key] || []
-                const hasLeave = dayLeaves.length > 0
-                const visible = dayLeaves.slice(0, 3)
-                const hiddenCount = dayLeaves.length - visible.length
-
-                return (
-                  <button
-                    type="button"
-                    key={key + cell.muted}
-                    onClick={() => setSelectedDay(cell.date)}
-                    title={
-                      holiday
-                        ? holiday.name
-                        : hasLeave
-                          ? dayLeaves.map((item) => item.user_name).join(', ')
-                          : undefined
-                    }
-                    style={{
-                      aspectRatio: '1 / 1',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 2,
-                      borderRadius: 8,
-                      border: isToday
-                        ? '1px solid #2563eb'
-                        : '1px solid transparent',
-                      background: isSelected
-                        ? 'rgba(37, 99, 235, 0.08)'
-                        : holiday
-                          ? 'rgba(245, 158, 11, 0.08)'
-                          : 'transparent',
-                      opacity: cell.muted ? 0.35 : 1,
-                      cursor: 'pointer',
-                      padding: 0,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: hasLeave || holiday ? 700 : 400,
-                        color: holiday
-                          ? '#b45309'
-                          : hasLeave
-                            ? '#2563eb'
-                            : 'inherit',
-                      }}
-                    >
-                      {cell.date.getDate()}
-                    </span>
-
-                    {(hasLeave || holiday) && (
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        {holiday && (
-                          <span
-                            style={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: '50%',
-                              background: '#f59e0b',
-                              marginRight: hasLeave ? 3 : 0,
-                            }}
-                          />
-                        )}
-
-                        {visible.map((item, i) => (
-                          <span
-                            key={item.id}
-                            style={{
-                              width: 14,
-                              height: 14,
-                              borderRadius: '50%',
-                              background: avatarColor(item.user_name),
-                              color: '#fff',
-                              fontSize: 6,
-                              fontWeight: 700,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              border: '1.5px solid var(--card-bg, #fff)',
-                              marginLeft: i === 0 ? 0 : -5,
-                            }}
-                          >
-                            {initials(item.user_name)}
-                          </span>
-                        ))}
-
-                        {hiddenCount > 0 && (
-                          <span
-                            style={{
-                              width: 14,
-                              height: 14,
-                              borderRadius: '50%',
-                              background: '#94a3b8',
-                              color: '#fff',
-                              fontSize: 6,
-                              fontWeight: 700,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              border: '1.5px solid var(--card-bg, #fff)',
-                              marginLeft: -5,
-                            }}
-                          >
-                            +{hiddenCount}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
             </div>
-          )}
-        </div>
-
-        {selectedDay && (selectedHoliday || selectedLeaves.length > 0) && (
-          <div
-            style={{
-              marginTop: 12,
-              paddingTop: 12,
-              borderTop: '1px solid #e6eef8',
-              flexShrink: 0,
-            }}
-          >
-            <strong style={{ fontSize: 13 }}>
-              {formatDate(toKey(selectedDay))}
-            </strong>
-
-            {selectedHoliday && (
-              <div className="notice" style={{ marginTop: 8 }}>
-                {selectedHoliday.name}
-              </div>
-            )}
-
-            {selectedLeaves.length > 0 && (
+          ) : (
+            <>
               <div
                 style={{
-                  marginTop: 8,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 6,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  marginBottom: 4,
                 }}
               >
-                {selectedLeaves.map((item) => (
+                {DOW.map((dow, i) => (
                   <div
-                    key={item.id}
+                    key={i}
+                    className="hint"
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      fontSize: 12,
+                      textAlign: 'center',
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      paddingBottom: 6,
+                      color: i >= 5 ? '#94a3b8' : undefined,
                     }}
                   >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span
-                        style={{
-                          width: 14,
-                          height: 14,
-                          borderRadius: '50%',
-                          background: avatarColor(item.user_name),
-                          color: '#fff',
-                          fontSize: 6,
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {initials(item.user_name)}
-                      </span>
-                      {item.user_name}
-                    </span>
-
-                    <span className="hint">{item.type}</span>
+                    {dow}
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        )}
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  gap: 3,
+                }}
+              >
+                {cells.map((cell, idx) => {
+                  const key = toKey(cell.date)
+                  const isToday = key === todayKey
+                  const isWeekend = idx % 7 >= 5
+                  const dayLeaves = eventsByDay[key] || []
+                  const hasLeave = dayLeaves.length > 0
+                  const visible = dayLeaves.slice(0, 3)
+                  const hiddenCount = dayLeaves.length - visible.length
+                  const isSelected = selectedKey === key && hasLeave
+
+                  const classNames = [
+                    'cal-daybtn',
+                    cell.muted ? 'cal-daybtn--muted' : '',
+                    isWeekend && !cell.muted ? 'cal-daybtn--weekend' : '',
+                    isSelected ? 'cal-daybtn--selected' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+
+                  return (
+                    <button
+                      type="button"
+                      key={key + cell.muted}
+                      className={classNames}
+                      disabled={!hasLeave}
+                      onClick={() =>
+                        setSelectedKey((prev) => (prev === key ? null : key))
+                      }
+                      style={{
+                        aspectRatio: '1 / 1',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 3,
+                        borderRadius: 9,
+                        opacity: cell.muted ? 0.32 : 1,
+                        ...(isToday
+                          ? {
+                              backgroundColor: '#2563eb',
+                              borderColor: '#2563eb',
+                            }
+                          : {}),
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 12.5,
+                          fontWeight: hasLeave || isToday ? 700 : 500,
+                          color: isToday
+                            ? '#fff'
+                            : hasLeave
+                              ? '#2563eb'
+                              : isWeekend
+                                ? '#94a3b8'
+                                : 'inherit',
+                        }}
+                      >
+                        {cell.date.getDate()}
+                      </span>
+
+                      {hasLeave && (
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          {visible.map((item, i) => (
+                            <span
+                              key={item.id}
+                              className="cal-avatar"
+                              style={{
+                                width: 15,
+                                height: 15,
+                                borderRadius: '50%',
+                                background: avatarColor(item.user_name),
+                                color: '#fff',
+                                fontSize: 6,
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: isToday
+                                  ? '1.5px solid #2563eb'
+                                  : '1.5px solid var(--card-bg, #fff)',
+                                marginLeft: i === 0 ? 0 : -5,
+                              }}
+                            >
+                              {initials(item.user_name)}
+                            </span>
+                          ))}
+
+                          {hiddenCount > 0 && (
+                            <span
+                              className="cal-avatar"
+                              style={{
+                                width: 15,
+                                height: 15,
+                                borderRadius: '50%',
+                                background: '#94a3b8',
+                                color: '#fff',
+                                fontSize: 6,
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: isToday
+                                  ? '1.5px solid #2563eb'
+                                  : '1.5px solid var(--card-bg, #fff)',
+                                marginLeft: -5,
+                              }}
+                            >
+                              +{hiddenCount}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {selectedKey && selectedLeaves.length > 0 && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    background: 'rgba(37, 99, 235, 0.06)',
+                    border: '1px solid rgba(37, 99, 235, 0.18)',
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+                    {formatDate(selectedKey)}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    {selectedLeaves.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                      >
+                        <span
+                          style={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: '50%',
+                            background: avatarColor(item.user_name),
+                            color: '#fff',
+                            fontSize: 8,
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {initials(item.user_name)}
+                        </span>
+                        <span style={{ fontSize: 12.5 }}>{item.user_name}</span>
+                        <span className="hint" style={{ fontSize: 11.5, marginLeft: 'auto' }}>
+                          {item.type}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginTop: 14,
+                  paddingTop: 12,
+                  borderTop: '1px solid rgba(100, 116, 139, 0.14)',
+                }}
+              >
+                <Users size={14} className="hint" />
+                <span className="hint" style={{ fontSize: 12 }}>
+                  {monthSummary.people > 0
+                    ? `${monthSummary.people} orang cuti di ${monthSummary.days} hari bulan ini`
+                    : 'Belum ada cuti tercatat bulan ini'}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -516,14 +678,18 @@ function CalendarModal({ onClose, holidays }) {
 export default function Dashbosrd() {
   const { user } = useAuth()
 
-  const [employees, setEmployees] = useState([])
-  const [holidays, setHolidays] = useState([])
+  const [leaveTypes, setLeaveTypes] = useState([])
+  const holidays = NATIONAL_HOLIDAYS_2026 // sumber: kalender hari libur nasional asli, bukan dari API
   const [showCalendar, setShowCalendar] = useState(false)
+  const [hoverMonth, setHoverMonth] = useState(null) // di-set saat mouse di atas bar (desktop)
+  const [pinnedMonth, setPinnedMonth] = useState(null) // di-set saat tap di layar sentuh (tanpa hover)
+  const activeMonth = hoverMonth ?? pinnedMonth
 
   const [summary, setSummary] = useState({
     team_on_leave: [],
     pending_count: 0,
     monthly_request: [],
+    monthly_by_department: [],
     remaining_leave: 0,
   })
 
@@ -536,24 +702,46 @@ export default function Dashbosrd() {
   async function loadDashboard() {
     try {
       const [
-        employeeRes,
         summaryRes,
-        holidayRes,
+        leaveTypeRes,
       ] = await Promise.all([
-        api.get('/employees'),
         api.get('/dashboard/summary'),
-        api.get('/holidays'),
+        api.get('/leave-types'),
       ])
 
-      setEmployees(employeeRes.data)
       setSummary(summaryRes.data)
-      setHolidays(holidayRes.data)
+      setLeaveTypes(leaveTypeRes.data)
 
     } catch (error) {
       console.error(error)
     }
   }
 
+
+  /*
+   * Cari cuti tahunan berdasarkan slug (sama seperti di EmployeeDashboard).
+   * Jangan pakai t.id === 'annual' karena id biasanya angka dari database.
+   */
+  const annual = leaveTypes.find(
+    (item) =>
+      item.slug === 'annual' ||
+      item.name?.toLowerCase() === 'cuti tahunan',
+  )
+
+  const remainingLeave = annual
+    ? annual.remaining ??
+      Math.max(
+        0,
+        (annual.allocated ?? annual.days ?? 0) -
+          (annual.used ?? 0),
+      )
+    : 0
+
+  const totalLeave = annual
+    ? annual.allocated ??
+      annual.days ??
+      0
+    : 0
 
   const nextHoliday = useMemo(() => {
     const startOfToday = new Date()
@@ -587,6 +775,25 @@ export default function Dashbosrd() {
     'Nov',
     'Des',
   ]
+
+  const currentYear = new Date().getFullYear()
+
+  // Rincian per departemen untuk bulan yang sedang di-hover/tap. Diambil dari
+  // summary.monthly_by_department[index], array berisi
+  // { department, count } untuk bulan tsb. Kalau backend belum
+  // mengirim field ini, tooltip akan bilang datanya belum tersedia
+  // alih-alih diam-diam kosong.
+  const departmentBreakdown = useMemo(() => {
+    if (activeMonth === null) return null
+    const raw = summary.monthly_by_department?.[activeMonth]
+    if (!raw || raw.length === 0) return []
+    const total = raw.reduce((sum, item) => sum + item.count, 0) || 1
+    return [...raw]
+      .sort((a, b) => b.count - a.count)
+      .map((item) => ({ ...item, pct: (item.count / total) * 100 }))
+  }, [activeMonth, summary.monthly_by_department])
+
+  const hasDepartmentField = Array.isArray(summary.monthly_by_department) && summary.monthly_by_department.length > 0
 
 
   return (
@@ -632,18 +839,18 @@ export default function Dashbosrd() {
         <article className="card kpi">
 
           <h3>
-            Total karyawan
+            Sisa cuti
           </h3>
 
           <b>
-            {employees.length}
+            {remainingLeave} hari
           </b>
 
           <span>
-            Karyawan aktif
+            dari {totalLeave} hari kuota
           </span>
 
-          <Users
+          <Plane
             className="watermark"
             size={54}
           />
@@ -753,11 +960,12 @@ export default function Dashbosrd() {
       flexDirection: 'column',
       justifyContent: 'space-between',
       height: 300,
-      padding: '30px 8px 8px',
+      padding: '18px 8px 8px',
     }}
   >
     <div
       style={{
+        position: 'relative',
         flex: 1,
         display: 'flex',
         alignItems: 'flex-end',
@@ -766,9 +974,67 @@ export default function Dashbosrd() {
         borderBottom: '1px solid #e6eef8',
       }}
     >
+      {/* ---- Tooltip mengambang, muncul saat hover/tap, mengikuti posisi bulan aktif ---- */}
+      {activeMonth !== null && (
+        <div
+          role="tooltip"
+          style={{
+            position: 'absolute',
+            left: `${((activeMonth + 0.5) / 12) * 100}%`,
+            top: 0,
+            transform: 'translate(-50%, -100%)',
+            marginTop: -8,
+            zIndex: 5,
+            width: 190,
+            background: '#fff',
+            borderRadius: 10,
+            boxShadow: '0 8px 24px rgba(15, 23, 42, 0.16)',
+            border: '1px solid #e6eef8',
+            padding: '10px 12px',
+            pointerEvents: 'none',
+          }}
+        >
+          <strong style={{ fontSize: 12 }}>
+            {MONTHS[activeMonth]} {currentYear}
+          </strong>
+
+          {!hasDepartmentField && (
+            <p className="hint" style={{ margin: '6px 0 0', fontSize: 11 }}>
+              Data per departemen belum tersedia dari server.
+            </p>
+          )}
+
+          {hasDepartmentField && departmentBreakdown && departmentBreakdown.length === 0 && (
+            <p className="hint" style={{ margin: '6px 0 0', fontSize: 11 }}>
+              Tidak ada pengajuan cuti di bulan ini.
+            </p>
+          )}
+
+          {hasDepartmentField && departmentBreakdown && departmentBreakdown.length > 0 && (
+            <div style={{ marginTop: 6, display: 'grid', gap: 4 }}>
+              {departmentBreakdown.map((item) => (
+                <div
+                  key={item.department}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: 12,
+                    color: '#0b5c8f',
+                  }}
+                >
+                  <span>{item.department}</span>
+                  <b>{item.count} pengajuan</b>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {chartData.map((value, index) => {
         const barHeight =
           value === 0 ? 8 : Math.max((value / maxChart) * 200, 24)
+        const isActive = activeMonth === index
 
         return (
           <div
@@ -781,12 +1047,20 @@ export default function Dashbosrd() {
               height: '100%',
             }}
           >
-            <div
+            <button
+              type="button"
+              onMouseEnter={() => setHoverMonth(index)}
+              onMouseLeave={() => setHoverMonth(null)}
+              onFocus={() => setHoverMonth(index)}
+              onBlur={() => setHoverMonth(null)}
+              onClick={() => setPinnedMonth((prev) => (prev === index ? null : index))}
+              aria-pressed={isActive}
               style={{
                 width: '100%',
                 maxWidth: 56,
                 height: `${barHeight}px`,
                 borderRadius: '12px 12px 6px 6px',
+                border: isActive ? '2px solid #2563eb' : '2px solid transparent',
                 background:
                   value === 0
                     ? '#d8eefc'
@@ -798,11 +1072,13 @@ export default function Dashbosrd() {
                 color: '#0b5c8f',
                 fontSize: 12,
                 fontWeight: 700,
-                transition: 'all .25s ease',
+                cursor: 'pointer',
+                opacity: isActive ? 1 : 0.92,
+                transition: 'all .2s ease',
               }}
             >
               {value > 0 ? value : ''}
-            </div>
+            </button>
           </div>
         )
       })}
@@ -822,7 +1098,8 @@ export default function Dashbosrd() {
             flex: 1,
             textAlign: 'center',
             fontSize: 12,
-            color: 'var(--muted)',
+            fontWeight: activeMonth === index ? 700 : 400,
+            color: activeMonth === index ? '#2563eb' : 'var(--muted)',
             lineHeight: 1.2,
           }}
         >
@@ -913,7 +1190,6 @@ export default function Dashbosrd() {
       {showCalendar && (
         <CalendarModal
           onClose={() => setShowCalendar(false)}
-          holidays={holidays}
         />
       )}
 

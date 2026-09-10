@@ -9,6 +9,7 @@ import {
   FilePlus2,
   History,
   Plane,
+  Users,
   X,
   XCircle,
 } from 'lucide-react'
@@ -34,6 +35,8 @@ const MONTHS = [
   'November',
   'Desember',
 ]
+
+const DOW = ['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Mg']
 
 const AVATAR_PALETTE = [
   '#2563eb',
@@ -99,6 +102,7 @@ function TeamCalendarModal({ onClose, currentUserName }) {
   const [loading, setLoading] = useState(true)
   const [teamLeaves, setTeamLeaves] = useState([])
   const [fallbackOnly, setFallbackOnly] = useState(false)
+  const [selectedKey, setSelectedKey] = useState(null)
   const [cursor, setCursor] = useState(() => {
     const d = new Date()
     d.setDate(1)
@@ -163,6 +167,7 @@ function TeamCalendarModal({ onClose, currentUserName }) {
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const prevDays = new Date(year, month, 0).getDate()
   const today = new Date()
+  const todayKey = toKey(today)
 
   const cells = []
   for (let i = startOffset; i > 0; i -= 1) {
@@ -179,6 +184,31 @@ function TeamCalendarModal({ onClose, currentUserName }) {
     })
   }
 
+  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth()
+
+  // Ringkasan: berapa orang unik yang punya cuti approved di bulan yang sedang dilihat
+  const monthSummary = useMemo(() => {
+    const names = new Set()
+    let dayCount = 0
+    Object.entries(eventsByDay).forEach(([key, items]) => {
+      const [ky, km] = key.split('-').map(Number)
+      if (ky === year && km - 1 === month) {
+        dayCount += 1
+        items.forEach((item) => names.add(item.user_name))
+      }
+    })
+    return { people: names.size, days: dayCount }
+  }, [eventsByDay, year, month])
+
+  const selectedLeaves = selectedKey ? eventsByDay[selectedKey] || [] : []
+
+  function goToday() {
+    const d = new Date()
+    d.setDate(1)
+    setCursor(d)
+    setSelectedKey(null)
+  }
+
   return (
     <div
       role="dialog"
@@ -187,7 +217,8 @@ function TeamCalendarModal({ onClose, currentUserName }) {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(15, 23, 42, 0.45)',
+        background: 'rgba(15, 23, 42, 0.5)',
+        backdropFilter: 'blur(2px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -195,93 +226,240 @@ function TeamCalendarModal({ onClose, currentUserName }) {
         padding: 16,
       }}
     >
+      <style>{`
+        .tcal-daybtn {
+          border: 1px solid transparent;
+          background: transparent;
+          cursor: pointer;
+          transition: background-color 120ms ease, border-color 120ms ease, transform 80ms ease;
+        }
+        .tcal-daybtn:hover:not(.tcal-daybtn--muted) {
+          background-color: rgba(37, 99, 235, 0.08);
+          border-color: rgba(37, 99, 235, 0.25);
+        }
+        .tcal-daybtn:active:not(.tcal-daybtn--muted) {
+          transform: scale(0.96);
+        }
+        .tcal-daybtn--selected {
+          background-color: rgba(37, 99, 235, 0.14) !important;
+          border-color: #2563eb !important;
+        }
+        .tcal-daybtn--weekend {
+          background-color: rgba(100, 116, 139, 0.05);
+        }
+        .tcal-avatar {
+          transition: transform 120ms ease;
+        }
+        .tcal-avatar:hover {
+          transform: translateY(-2px);
+          z-index: 5;
+        }
+        .tcal-navbtn {
+          transition: background-color 120ms ease;
+        }
+        .tcal-navbtn:hover {
+          background-color: rgba(100, 116, 139, 0.12);
+        }
+        .tcal-skel {
+          background: linear-gradient(90deg, rgba(148,163,184,0.15) 25%, rgba(148,163,184,0.28) 37%, rgba(148,163,184,0.15) 63%);
+          background-size: 400% 100%;
+          animation: tcal-shimmer 1.4s ease infinite;
+          border-radius: 8px;
+        }
+        @keyframes tcal-shimmer {
+          0% { background-position: 100% 50%; }
+          100% { background-position: 0 50%; }
+        }
+      `}</style>
+
       <div
         className="card"
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: 400,
-          maxHeight: '85vh',
-          padding: 18,
+          maxWidth: 420,
+          maxHeight: '88vh',
+          padding: 0,
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
         }}
       >
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'space-between',
-            marginBottom: 10,
+            padding: '18px 18px 14px',
+            borderBottom: '1px solid rgba(100, 116, 139, 0.14)',
             flexShrink: 0,
           }}
         >
-          <h2 style={{ margin: 0, fontSize: 17 }}>Kalender Tim</h2>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                background: 'rgba(37, 99, 235, 0.12)',
+                color: '#2563eb',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <CalendarIcon size={18} />
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 16, lineHeight: 1.3 }}>Kalender Tim</h2>
+              <p className="hint" style={{ margin: '2px 0 0', fontSize: 12.5 }}>
+                Lihat siapa saja yang sedang cuti
+              </p>
+            </div>
+          </div>
 
           <button
             type="button"
             onClick={onClose}
             className="btn btn-ghost"
-            style={{ padding: 4 }}
+            style={{ padding: 4, flexShrink: 0 }}
             aria-label="Tutup"
           >
             <X size={16} />
           </button>
         </div>
 
-        <div
-          className="cal-head"
-          style={{
-            marginBottom: 8,
-            flexShrink: 0,
-          }}
-        >
-          <button
-            className="icon-btn"
-            onClick={() =>
-              setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
-            }
-            aria-label="Bulan sebelumnya"
+        <div style={{ padding: '14px 18px 18px', overflowY: 'auto' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 12,
+            }}
           >
-            <ChevronLeft size={16} />
-          </button>
+            <button
+              type="button"
+              className="tcal-navbtn"
+              onClick={() =>
+                setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
+              }
+              aria-label="Bulan sebelumnya"
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 8,
+                border: '1px solid rgba(100, 116, 139, 0.2)',
+                background: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <ChevronLeft size={15} />
+            </button>
 
-          <h2 style={{ fontSize: 14 }}>
-            {MONTHS[month]} {year}
-          </h2>
+            <button
+              type="button"
+              onClick={goToday}
+              disabled={isCurrentMonth}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: isCurrentMonth ? 'default' : 'pointer',
+                textAlign: 'center',
+                padding: 0,
+              }}
+            >
+              <div style={{ fontSize: 14.5, fontWeight: 600 }}>
+                {MONTHS[month]} {year}
+              </div>
+              {!isCurrentMonth && (
+                <div style={{ fontSize: 11, color: '#2563eb', marginTop: 1 }}>
+                  Kembali ke hari ini
+                </div>
+              )}
+            </button>
 
-          <button
-            className="icon-btn"
-            onClick={() =>
-              setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
-            }
-            aria-label="Bulan berikutnya"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
+            <button
+              type="button"
+              className="tcal-navbtn"
+              onClick={() =>
+                setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
+              }
+              aria-label="Bulan berikutnya"
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 8,
+                border: '1px solid rgba(100, 116, 139, 0.2)',
+                background: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
 
-        <div style={{ overflowY: 'auto' }}>
+          {fallbackOnly && !loading && (
+            <p
+              className="hint"
+              style={{
+                marginBottom: 10,
+                padding: '7px 9px',
+                borderRadius: 8,
+                fontSize: 12,
+                background: 'rgba(217, 119, 6, 0.12)',
+                color: '#b45309',
+              }}
+            >
+              Endpoint cuti tim belum tersedia — kalender ini baru
+              menampilkan cuti kamu sendiri.
+            </p>
+          )}
+
           {loading ? (
-            <p className="hint">Memuat data cuti tim…</p>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                gap: 4,
+              }}
+            >
+              {Array.from({ length: 35 }).map((_, i) => (
+                <div key={i} className="tcal-skel" style={{ aspectRatio: '1 / 1' }} />
+              ))}
+            </div>
           ) : (
             <>
-              {fallbackOnly && (
-                <p
-                  className="hint"
-                  style={{
-                    marginBottom: 8,
-                    padding: '6px 8px',
-                    borderRadius: 8,
-                    fontSize: 12,
-                    background: 'rgba(217, 119, 6, 0.12)',
-                    color: '#b45309',
-                  }}
-                >
-                  Endpoint cuti tim belum tersedia — kalender ini baru
-                  menampilkan cuti kamu sendiri.
-                </p>
-              )}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  marginBottom: 4,
+                }}
+              >
+                {DOW.map((dow, i) => (
+                  <div
+                    key={i}
+                    className="hint"
+                    style={{
+                      textAlign: 'center',
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      paddingBottom: 6,
+                      color: i >= 5 ? '#94a3b8' : undefined,
+                    }}
+                  >
+                    {dow}
+                  </div>
+                ))}
+              </div>
 
               <div
                 style={{
@@ -290,35 +468,33 @@ function TeamCalendarModal({ onClose, currentUserName }) {
                   gap: 3,
                 }}
               >
-                {['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Mg'].map((dow, i) => (
-                  <div
-                    key={i}
-                    className="hint"
-                    style={{
-                      textAlign: 'center',
-                      fontSize: 10,
-                      paddingBottom: 4,
-                    }}
-                  >
-                    {dow}
-                  </div>
-                ))}
-
-                {cells.map((cell) => {
+                {cells.map((cell, idx) => {
                   const key = toKey(cell.date)
-                  const isToday = toKey(cell.date) === toKey(today)
+                  const isToday = key === todayKey
+                  const isWeekend = idx % 7 >= 5
                   const dayLeaves = eventsByDay[key] || []
                   const hasLeave = dayLeaves.length > 0
                   const visible = dayLeaves.slice(0, 3)
                   const hiddenCount = dayLeaves.length - visible.length
+                  const isSelected = selectedKey === key && hasLeave
+
+                  const classNames = [
+                    'tcal-daybtn',
+                    cell.muted ? 'tcal-daybtn--muted' : '',
+                    isWeekend && !cell.muted ? 'tcal-daybtn--weekend' : '',
+                    isSelected ? 'tcal-daybtn--selected' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
 
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={key + cell.muted}
-                      title={
-                        hasLeave
-                          ? dayLeaves.map((item) => item.user_name).join(', ')
-                          : undefined
+                      className={classNames}
+                      disabled={!hasLeave}
+                      onClick={() =>
+                        setSelectedKey((prev) => (prev === key ? null : key))
                       }
                       style={{
                         aspectRatio: '1 / 1',
@@ -326,19 +502,28 @@ function TeamCalendarModal({ onClose, currentUserName }) {
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 2,
-                        borderRadius: 8,
-                        border: isToday
-                          ? '1px solid #2563eb'
-                          : '1px solid transparent',
-                        opacity: cell.muted ? 0.35 : 1,
+                        gap: 3,
+                        borderRadius: 9,
+                        opacity: cell.muted ? 0.32 : 1,
+                        ...(isToday
+                          ? {
+                              backgroundColor: '#2563eb',
+                              borderColor: '#2563eb',
+                            }
+                          : {}),
                       }}
                     >
                       <span
                         style={{
-                          fontSize: 12,
-                          fontWeight: hasLeave ? 700 : 400,
-                          color: hasLeave ? '#2563eb' : 'inherit',
+                          fontSize: 12.5,
+                          fontWeight: hasLeave || isToday ? 700 : 500,
+                          color: isToday
+                            ? '#fff'
+                            : hasLeave
+                              ? '#2563eb'
+                              : isWeekend
+                                ? '#94a3b8'
+                                : 'inherit',
                         }}
                       >
                         {cell.date.getDate()}
@@ -349,9 +534,10 @@ function TeamCalendarModal({ onClose, currentUserName }) {
                           {visible.map((item, i) => (
                             <span
                               key={item.id}
+                              className="tcal-avatar"
                               style={{
-                                width: 14,
-                                height: 14,
+                                width: 15,
+                                height: 15,
                                 borderRadius: '50%',
                                 background: avatarColor(item.user_name),
                                 color: '#fff',
@@ -360,7 +546,9 @@ function TeamCalendarModal({ onClose, currentUserName }) {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                border: '1.5px solid var(--card-bg, #fff)',
+                                border: isToday
+                                  ? '1.5px solid #2563eb'
+                                  : '1.5px solid var(--card-bg, #fff)',
                                 marginLeft: i === 0 ? 0 : -5,
                               }}
                             >
@@ -370,9 +558,10 @@ function TeamCalendarModal({ onClose, currentUserName }) {
 
                           {hiddenCount > 0 && (
                             <span
+                              className="tcal-avatar"
                               style={{
-                                width: 14,
-                                height: 14,
+                                width: 15,
+                                height: 15,
                                 borderRadius: '50%',
                                 background: '#94a3b8',
                                 color: '#fff',
@@ -381,7 +570,9 @@ function TeamCalendarModal({ onClose, currentUserName }) {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                border: '1.5px solid var(--card-bg, #fff)',
+                                border: isToday
+                                  ? '1.5px solid #2563eb'
+                                  : '1.5px solid var(--card-bg, #fff)',
                                 marginLeft: -5,
                               }}
                             >
@@ -390,9 +581,73 @@ function TeamCalendarModal({ onClose, currentUserName }) {
                           )}
                         </div>
                       )}
-                    </div>
+                    </button>
                   )
                 })}
+              </div>
+
+              {selectedKey && selectedLeaves.length > 0 && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    background: 'rgba(37, 99, 235, 0.06)',
+                    border: '1px solid rgba(37, 99, 235, 0.18)',
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+                    {formatDate(selectedKey)}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    {selectedLeaves.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                      >
+                        <span
+                          style={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: '50%',
+                            background: avatarColor(item.user_name),
+                            color: '#fff',
+                            fontSize: 8,
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {initials(item.user_name)}
+                        </span>
+                        <span style={{ fontSize: 12.5 }}>{item.user_name}</span>
+                        <span className="hint" style={{ fontSize: 11.5, marginLeft: 'auto' }}>
+                          {item.type}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginTop: 14,
+                  paddingTop: 12,
+                  borderTop: '1px solid rgba(100, 116, 139, 0.14)',
+                }}
+              >
+                <Users size={14} className="hint" />
+                <span className="hint" style={{ fontSize: 12 }}>
+                  {monthSummary.people > 0
+                    ? `${monthSummary.people} orang cuti di ${monthSummary.days} hari bulan ini`
+                    : 'Belum ada cuti tercatat bulan ini'}
+                </span>
               </div>
             </>
           )}

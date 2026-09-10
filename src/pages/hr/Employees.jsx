@@ -12,7 +12,10 @@ const emptyForm = {
   location: '',
   phone: '',
   join_date: '',
-  leave: 29,
+  // dikosongkan: kalau tidak diisi, backend otomatis pakai
+  // ANNUAL_LEAVE_QUOTA (12 hari) — lihat EmployeeController::store
+  leave: '',
+  nip: '',
 }
 
 /* =========================
@@ -29,12 +32,61 @@ const DEPARTMENTS = [
   'Operations',
 ]
 
+/* =========================
+   DAFTAR BULAN (untuk filter
+   berdasarkan tanggal bergabung)
+========================= */
+
+const MONTHS = [
+  { value: '01', label: 'Januari' },
+  { value: '02', label: 'Februari' },
+  { value: '03', label: 'Maret' },
+  { value: '04', label: 'April' },
+  { value: '05', label: 'Mei' },
+  { value: '06', label: 'Juni' },
+  { value: '07', label: 'Juli' },
+  { value: '08', label: 'Agustus' },
+  { value: '09', label: 'September' },
+  { value: '10', label: 'Oktober' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'Desember' },
+]
+
+// semua avatar pakai satu warna biru yang sama
+const AVATAR_PALETTE = {
+  bg: 'linear-gradient(135deg, #dbeafe, #c9efff)',
+  fg: '#315c7c',
+}
+
+const avatarPalette = () => AVATAR_PALETTE
+
+// pecah tanggal bergabung (format YYYY-MM-DD dari backend)
+// jadi { year, month } tanpa membuat objek Date (hindari
+// masalah timezone untuk tanggal polos)
+const splitJoinDate = (joinDate) => {
+  if (!joinDate || typeof joinDate !== 'string') {
+    return { year: null, month: null }
+  }
+
+  const [year, month] = joinDate.split('-')
+
+  if (!year || !month) {
+    return { year: null, month: null }
+  }
+
+  return { year, month }
+}
+
 export default function Employees() {
   const { push } = useToast()
 
   const [query, setQuery] = useState('')
   const [dept, setDept] = useState('all')
+  const [employeeFilter, setEmployeeFilter] = useState('all')
+  const [monthFilter, setMonthFilter] = useState('all')
+  const [yearFilter, setYearFilter] = useState('all')
   const [employees, setEmployees] = useState([])
+  const [loading, setLoading] = useState(true)
 
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(emptyForm)
@@ -49,6 +101,8 @@ export default function Employees() {
   ========================= */
 
   useEffect(() => {
+    setLoading(true)
+
     api
       .get('/employees')
       .then((res) => {
@@ -59,6 +113,9 @@ export default function Employees() {
           'Gagal memuat direktori karyawan.',
           'error',
         )
+      })
+      .finally(() => {
+        setLoading(false)
       })
   }, [])
 
@@ -82,17 +139,65 @@ export default function Employees() {
   }, [employees])
 
   /* =========================
+     DAFTAR TAHUN BERGABUNG
+     (diambil dari data asli, bukan diketik manual,
+     supaya selalu sesuai isi database)
+  ========================= */
+
+  const availableYears = ['2026', '2027', '2028', '2029', '2030']
+
+  /* =========================
+     STATISTIK RINGKAS
+     (biar halaman terasa hidup, bukan cuma tabel kosong)
+  ========================= */
+
+  const stats = useMemo(() => {
+    const total = employees.length
+
+    const activeDepartments = new Set(
+      employees.map((item) => item.dept).filter(Boolean),
+    ).size
+
+    const leaveValues = employees
+      .map((item) => item.leave)
+      .filter((value) => typeof value === 'number')
+
+    const avgLeave = leaveValues.length
+      ? Math.round(
+          (leaveValues.reduce((sum, value) => sum + value, 0) /
+            leaveValues.length) *
+            10,
+        ) / 10
+      : 12
+
+    const now = new Date()
+    const recentJoins = employees.filter((item) => {
+      if (!item.join_date) return false
+
+      const joined = new Date(item.join_date)
+      const days = (now - joined) / (1000 * 60 * 60 * 24)
+
+      return days >= 0 && days <= 30
+    }).length
+
+    return { total, activeDepartments, avgLeave, recentJoins }
+  }, [employees])
+
+  /* =========================
      FILTER DATA
   ========================= */
 
   const rows = useMemo(() => {
     return employees
       .filter((item) => {
-        if (dept === 'all') {
-          return true
-        }
+        if (dept === 'all') return true
 
         return item.dept === dept
+      })
+      .filter((item) => {
+        if (employeeFilter === 'all') return true
+
+        return String(item.id) === employeeFilter
       })
       .filter((item) => {
         const searchText = `
@@ -109,7 +214,42 @@ export default function Employees() {
           query.toLowerCase(),
         )
       })
-  }, [employees, query, dept])
+  }, [employees, query, dept, employeeFilter])
+
+  /* =========================
+     SISA CUTI
+     Backend cuma menyimpan sisa cuti terkini (`leave`),
+     jadi kolom ini selalu nilai asli dari data — tidak
+     tergantung filter Bulan/Tahun di atas, karena
+     filter itu soal kapan karyawan join, bukan soal cuti.
+  ========================= */
+
+  // Sisa cuti tahunan langsung dari data yang sudah dikirim
+  // backend (leave_by_year). Kalau tahun itu belum punya baris
+  // LeaveBalance sama sekali, anggap jatah penuh 12 hari — sama
+  // seperti fallback yang dipakai formatEmployee() di backend.
+  const getYearLeave = (row) => {
+    if (yearFilter === 'all') return row.leave ?? 12
+
+    const byYear = row.leave_by_year || {}
+
+    return byYear[yearFilter] ?? 12
+  }
+
+  const hasActiveFilters =
+    query.trim() !== '' ||
+    dept !== 'all' ||
+    employeeFilter !== 'all' ||
+    monthFilter !== 'all' ||
+    yearFilter !== 'all'
+
+  const resetFilters = () => {
+    setQuery('')
+    setDept('all')
+    setEmployeeFilter('all')
+    setMonthFilter('all')
+    setYearFilter('all')
+  }
 
   /* =========================
      UPDATE FORM
@@ -168,11 +308,37 @@ export default function Employees() {
       location: row.location || '',
       phone: row.phone || '',
       join_date: row.join_date || '',
-      leave: row.leave ?? 29,
+      // saat edit, tampilkan sisa cuti saat ini sebagai referensi;
+      // admin boleh kosongkan lagi kalau tidak mau mengubahnya
+      leave: row.leave ?? '',
+      // backend (formatEmployee) mengirim field `nip`
+      nip: row.nip || '',
     })
 
     setEditingId(row.id)
     setShowForm(true)
+  }
+
+  /* =========================
+     HELPER: PESAN ERROR
+     Laravel validation error ada di
+     response.data.errors.<field>[0],
+     bukan di response.data.message.
+  ========================= */
+
+  const extractErrorMessage = (err, fallback) => {
+    const errors = err.response?.data?.errors
+
+    if (errors) {
+      const firstField = Object.keys(errors)[0]
+      const firstMessage = errors[firstField]?.[0]
+
+      if (firstMessage) {
+        return firstMessage
+      }
+    }
+
+    return err.response?.data?.message || fallback
   }
 
   /* =========================
@@ -197,10 +363,26 @@ export default function Employees() {
     setSaving(true)
 
     try {
+      // kirim nip hanya jika diisi, biar backend yang
+      // auto-generate saat field ini kosong
+      const payload = {
+        ...form,
+        nip: form.nip.trim() ? form.nip.trim() : null,
+      }
+
+      // kalau sisa cuti dikosongkan, jangan kirim field ini sama
+      // sekali — backend otomatis pakai ANNUAL_LEAVE_QUOTA saat
+      // tambah baru, dan tidak mengubah saldo saat edit
+      if (form.leave === '') {
+        delete payload.leave
+      } else {
+        payload.leave = Number(form.leave)
+      }
+
       if (editingId) {
         const res = await api.put(
           `/employees/${editingId}`,
-          form,
+          payload,
         )
 
         if (res.data && res.data.id) {
@@ -226,7 +408,7 @@ export default function Employees() {
       } else {
         const res = await api.post(
           '/employees',
-          form,
+          payload,
         )
 
         if (res.data && res.data.id) {
@@ -253,10 +435,12 @@ export default function Employees() {
       setShowForm(false)
     } catch (err) {
       push(
-        err.response?.data?.message ||
-          (editingId
+        extractErrorMessage(
+          err,
+          editingId
             ? 'Gagal memperbarui karyawan.'
-            : 'Gagal menambahkan karyawan.'),
+            : 'Gagal menambahkan karyawan.',
+        ),
         'error',
       )
     } finally {
@@ -303,8 +487,10 @@ export default function Employees() {
       }
     } catch (err) {
       push(
-        err.response?.data?.message ||
+        extractErrorMessage(
+          err,
           'Gagal menghapus karyawan.',
+        ),
         'error',
       )
     } finally {
@@ -315,6 +501,157 @@ export default function Employees() {
   return (
     <div>
       <style>{`
+        /* =========================
+           STAT CARDS
+        ========================= */
+
+        .stat-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 14px;
+          margin-bottom: 18px;
+        }
+
+        .stat-card {
+          padding: 18px 20px;
+
+          border-radius: 18px;
+
+          background: #ffffff;
+          border: 1px solid #edf1f7;
+
+          box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .stat-card strong {
+          font-size: 1.6rem;
+          font-weight: 700;
+          color: #1e293b;
+          line-height: 1.1;
+        }
+
+        .stat-card span {
+          font-size: 0.8rem;
+          color: #64748b;
+        }
+
+        .stat-card .stat-icon {
+          width: 34px;
+          height: 34px;
+
+          border-radius: 10px;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          margin-bottom: 4px;
+        }
+
+        .stat-card--blue .stat-icon {
+          background: #eaf2ff;
+          color: #2563eb;
+        }
+
+        .stat-card--green .stat-icon {
+          background: #eafbf1;
+          color: #15803d;
+        }
+
+        .stat-card--amber .stat-icon {
+          background: #fef7e6;
+          color: #b45309;
+        }
+
+        .stat-card--violet .stat-icon {
+          background: #f3eeff;
+          color: #6d28d9;
+        }
+
+        @media (max-width: 900px) {
+          .stat-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (max-width: 520px) {
+          .stat-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        /* =========================
+           FILTER BAR
+        ========================= */
+
+        .filter-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .filter-field label {
+          display: block;
+          font-size: 0.72rem;
+          color: var(--muted, #64748b);
+          margin-bottom: 5px;
+        }
+
+        .filter-field select {
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: 12px;
+          border: 1px solid #dbe7f3;
+          background: #fff;
+          color: #334155;
+        }
+
+        .filter-bottom-row {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 12px;
+          align-items: end;
+          margin-top: 12px;
+        }
+
+        .filter-reset {
+          padding: 10px 16px;
+          border-radius: 12px;
+          border: 1px solid #dbe7f3;
+          background: #f8fafc;
+          color: #475569;
+          font-size: 0.82rem;
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.2s ease;
+        }
+
+        .filter-reset:hover {
+          background: #eef2f7;
+          color: #1e293b;
+        }
+
+        @media (max-width: 900px) {
+          .filter-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (max-width: 560px) {
+          .filter-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .filter-bottom-row {
+            grid-template-columns: 1fr;
+          }
+        }
+
         /* =========================
            TOMBOL AKSI
         ========================= */
@@ -432,15 +769,6 @@ export default function Employees() {
           overflow: hidden;
 
           border-radius: 50%;
-
-          background:
-            linear-gradient(
-              135deg,
-              #dbeafe,
-              #c9efff
-            );
-
-          color: #315c7c;
         }
 
         .person > span:last-child {
@@ -458,6 +786,8 @@ export default function Employees() {
         .person span span {
           margin-top: 2px;
           line-height: 1.35;
+          color: #94a3b8;
+          font-size: 0.8rem;
         }
 
         /* =========================
@@ -536,6 +866,40 @@ export default function Employees() {
         .table td:last-child {
           white-space: nowrap;
           width: 1%;
+        }
+
+        .table thead th {
+          position: sticky;
+          top: 0;
+
+          background: #f8fafc;
+
+          font-size: 0.74rem;
+          text-transform: none;
+          color: #64748b;
+
+          z-index: 1;
+        }
+
+        .table tbody tr {
+          transition: background 0.15s ease;
+        }
+
+        .table tbody tr:hover {
+          background: #f8fafc;
+        }
+
+        .table-count {
+          font-size: 0.8rem;
+          color: #94a3b8;
+          padding: 4px 2px 14px;
+        }
+
+        .table-loading,
+        .empty {
+          padding: 36px;
+          text-align: center;
+          color: #94a3b8;
         }
 
         /* =========================
@@ -986,18 +1350,6 @@ export default function Employees() {
         }
 
         /* =========================
-           EMPTY STATE
-        ========================= */
-
-        .empty {
-          padding: 30px;
-
-          text-align: center;
-
-          color: #94a3b8;
-        }
-
-        /* =========================
            ANIMASI
         ========================= */
 
@@ -1069,7 +1421,7 @@ export default function Employees() {
 
       <div className="page-head">
         <div>
-          <h1>Direktori karyawan</h1>
+          <h3>Direktori karyawan</h3>
 
           <p>
             Pantau status kehadiran,
@@ -1085,6 +1437,53 @@ export default function Employees() {
           <span>+</span>
           Tambah Karyawan
         </button>
+      </div>
+
+      {/* RINGKASAN */}
+      <div className="stat-grid">
+        <div className="stat-card stat-card--blue">
+          <div className="stat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <strong>{stats.total}</strong>
+          <span>Total karyawan</span>
+        </div>
+
+        <div className="stat-card stat-card--violet">
+          <div className="stat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" strokeWidth="2" />
+              <path d="M3 9h18M8 2v4M16 2v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </div>
+          <strong>{stats.activeDepartments}</strong>
+          <span>Departemen aktif</span>
+        </div>
+
+        <div className="stat-card stat-card--amber">
+          <div className="stat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 22c5-4 8-7.5 8-12a8 8 0 1 0-16 0c0 4.5 3 8 8 12Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+              <circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="2" />
+            </svg>
+          </div>
+          <strong>{stats.avgLeave} hari</strong>
+          <span>Rata-rata sisa cuti</span>
+        </div>
+
+        <div className="stat-card stat-card--green">
+          <div className="stat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12l7-7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <strong>{stats.recentJoins}</strong>
+          <span>Bergabung 30 hari terakhir</span>
+        </div>
       </div>
 
       {/* MODAL TAMBAH / EDIT */}
@@ -1182,6 +1581,16 @@ export default function Employees() {
                   </div>
 
                   <div className="employee-field">
+                    <label>NIP (opsional)</label>
+
+                    <input
+                      value={form.nip}
+                      onChange={updateField('nip')}
+                      placeholder="Kosongkan untuk generate otomatis"
+                    />
+                  </div>
+
+                  <div className="employee-field">
                     <label>Role</label>
 
                     <select
@@ -1269,14 +1678,14 @@ export default function Employees() {
                   </div>
 
                   <div className="employee-field">
-                    <label>Sisa Cuti</label>
+                    <label>Sisa Cuti (opsional)</label>
 
                     <input
                       type="number"
                       min="0"
                       value={form.leave}
                       onChange={updateLeave}
-                      placeholder="Contoh: 29"
+                      placeholder="Otomatis 12 hari jika dikosongkan"
                     />
                   </div>
                 </div>
@@ -1318,72 +1727,109 @@ export default function Employees() {
           marginBottom: 18,
         }}
       >
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '260px 1fr',
-            gap: 12,
-            alignItems: 'end',
-          }}
-        >
-          <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '0.72rem',
-                color: 'var(--muted)',
-                marginBottom: 5,
-              }}
-            >
-              Departemen
-            </label>
+        <div className="filter-grid">
+          <div className="filter-field">
+            <label>Departemen</label>
 
             <select
               value={dept}
-              onChange={(e) =>
-                setDept(e.target.value)
-              }
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 12,
-                border: '1px solid #dbe7f3',
-                background: '#fff',
-              }}
+              onChange={(e) => setDept(e.target.value)}
             >
               {departments.map((item) => (
-                <option
-                  key={item}
-                  value={item}
-                >
-                  {item === 'all'
-                    ? 'Semua Unit'
-                    : item}
+                <option key={item} value={item}>
+                  {item === 'all' ? 'Semua Unit' : item}
                 </option>
               ))}
             </select>
           </div>
 
+          <div className="filter-field">
+            <label>Karyawan</label>
+
+            <select
+              value={employeeFilter}
+              onChange={(e) => setEmployeeFilter(e.target.value)}
+            >
+              <option value="all">Semua Karyawan</option>
+
+              {employees.map((item) => (
+                <option key={item.id} value={String(item.id)}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-field">
+            <label>Bulan</label>
+
+            <select
+              value={monthFilter}
+              onChange={(e) => setMonthFilter(e.target.value)}
+            >
+              <option value="all">Semua Bulan</option>
+
+              {MONTHS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-field">
+            <label>Tahun</label>
+
+            <select
+              value={yearFilter}
+              onChange={(e) => setYearFilter(e.target.value)}
+            >
+              <option value="all">Semua Tahun</option>
+
+              {availableYears.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="filter-bottom-row">
           <label className="search">
             <input
-              placeholder="Cari karyawan..."
+              placeholder="Cari nama, NIP, jabatan, atau lokasi..."
               value={query}
-              onChange={(e) =>
-                setQuery(e.target.value)
-              }
+              onChange={(e) => setQuery(e.target.value)}
             />
           </label>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="filter-reset"
+              onClick={resetFilters}
+            >
+              Reset Filter
+            </button>
+          )}
         </div>
       </section>
 
       {/* TABLE */}
       <section className="card panel">
         <div className="table-wrap">
+          {!loading && (
+            <div className="table-count">
+              Menampilkan {rows.length} dari {employees.length} karyawan
+            </div>
+          )}
+
           <table className="table">
             <thead>
               <tr>
                 <th>Karyawan</th>
-                <th>ID</th>
+                <th>NIP</th>
                 <th>Departemen</th>
                 <th>Lokasi</th>
                 <th>Sisa Cuti</th>
@@ -1394,14 +1840,20 @@ export default function Employees() {
 
             <tbody>
               {rows.map((row) => {
-                const isBusy =
-                  rowActionId === row.id
+                const isBusy = rowActionId === row.id
+                const palette = avatarPalette()
 
                 return (
                   <tr key={row.id}>
                     <td>
                       <div className="person">
-                        <span className="avatar">
+                        <span
+                          className="avatar"
+                          style={{
+                            background: palette.bg,
+                            color: palette.fg,
+                          }}
+                        >
                           {initials(row.name)}
                         </span>
 
@@ -1424,7 +1876,7 @@ export default function Employees() {
                     <td>{row.location}</td>
 
                     <td>
-                      {row.leave ?? 29} hari
+                      {getYearLeave(row)} hari
                     </td>
 
                     <td>
@@ -1525,9 +1977,17 @@ export default function Employees() {
             </tbody>
           </table>
 
-          {rows.length === 0 && (
+          {loading && (
+            <div className="table-loading">
+              Memuat data karyawan...
+            </div>
+          )}
+
+          {!loading && rows.length === 0 && (
             <div className="empty">
-              Tidak ada data karyawan.
+              {hasActiveFilters
+                ? 'Tidak ada karyawan yang cocok dengan filter ini.'
+                : 'Tidak ada data karyawan.'}
             </div>
           )}
         </div>

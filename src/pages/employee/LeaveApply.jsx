@@ -38,7 +38,6 @@ export default function LeaveApply() {
   const { push } = useToast()
   const navigate = useNavigate()
   const [leaveTypes, setLeaveTypes] = useState([])
-  const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [attachment, setAttachment] = useState(null)
   const [form, setForm] = useState({
@@ -56,7 +55,6 @@ export default function LeaveApply() {
         if (res.data.length) setForm((prev) => ({ ...prev, type: res.data[0].id }))
       })
       .catch(() => push('Gagal memuat jenis pengajuan.', 'error'))
-      .finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -95,26 +93,10 @@ export default function LeaveApply() {
     }
   }
 
-  if (loading) {
-    return (
-      <div>
-        <div className="page-head">
-          <div>
-            <h1>Ajukan Pengajuan</h1>
-            <p>Memuat data...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div>
+    <div style={{ overflowX: 'hidden' }}>
       <div className="page-head">
-        <div>
-          <h1>Ajukan Pengajuan</h1>
-          <p>Lengkapi jenis, tanggal, dan alasan pengajuan Anda.</p>
-        </div>
+
       </div>
 
       <div
@@ -126,6 +108,7 @@ export default function LeaveApply() {
           width: '100%',
           maxWidth: 1140,
           margin: '0 auto',
+          boxSizing: 'border-box',
         }}
       >
         <form
