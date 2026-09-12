@@ -7,8 +7,12 @@ const api = axios.create({
 })
 
 // Selalu sertakan token (kalau ada) di setiap request.
+// Pakai sessionStorage (bukan localStorage) supaya tiap TAB browser
+// punya sesi login sendiri-sendiri — buka banyak tab dengan akun
+// demo yang beda-beda (Admin/HR/Manager/Karyawan) jadi nggak akan
+// saling menimpa token satu sama lain.
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY)
+  const token = sessionStorage.getItem(TOKEN_KEY)
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -20,19 +24,19 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem(TOKEN_KEY)
-      localStorage.removeItem('aether.user')
+      sessionStorage.removeItem(TOKEN_KEY)
+      sessionStorage.removeItem('aether.user')
     }
     return Promise.reject(error)
   },
 )
 
 export function saveToken(token) {
-  localStorage.setItem(TOKEN_KEY, token)
+  sessionStorage.setItem(TOKEN_KEY, token)
 }
 
 export function clearToken() {
-  localStorage.removeItem(TOKEN_KEY)
+  sessionStorage.removeItem(TOKEN_KEY)
 }
 
 export default api

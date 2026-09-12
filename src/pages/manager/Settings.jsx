@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AlertTriangle, CalendarSync, Mail, FileBarChart } from 'lucide-react'
 import { useToast } from '../../context/ToastContext'
 
 export default function Settings() {
@@ -32,30 +33,50 @@ export default function Settings() {
           <h2 style={{ fontSize: '1.05rem' }}>Notifikasi</h2>
           <div className="settings-list">
             <div className="settings-row">
-              <div>
-                <strong>Email persetujuan</strong>
-                <div className="hint">Kirim email saat ada permohonan baru atau keputusan.</div>
+              <div className="settings-row__label">
+                <span className="settings-row__icon">
+                  <Mail size={18} />
+                </span>
+                <div>
+                  <strong>Email persetujuan</strong>
+                  <div className="hint">Kirim email saat ada permohonan baru atau keputusan.</div>
+                </div>
               </div>
               <Toggle on={toggles.email} onClick={() => flip('email')} />
             </div>
             <div className="settings-row">
-              <div>
-                <strong>Ringkasan mingguan</strong>
-                <div className="hint">Rekap cuti tim setiap Senin pagi.</div>
+              <div className="settings-row__label">
+                <span className="settings-row__icon">
+                  <FileBarChart size={18} />
+                </span>
+                <div>
+                  <strong>Ringkasan mingguan</strong>
+                  <div className="hint">Rekap cuti tim setiap Senin pagi.</div>
+                </div>
               </div>
               <Toggle on={toggles.digest} onClick={() => flip('digest')} />
             </div>
             <div className="settings-row">
-              <div>
-                <strong>Peringatan bentrok</strong>
-                <div className="hint">Tandai jika lebih dari 30% tim cuti di hari yang sama.</div>
+              <div className="settings-row__label">
+                <span className="settings-row__icon">
+                  <AlertTriangle size={18} />
+                </span>
+                <div>
+                  <strong>Peringatan bentrok</strong>
+                  <div className="hint">Tandai jika lebih dari 30% tim cuti di hari yang sama.</div>
+                </div>
               </div>
               <Toggle on={toggles.clash} onClick={() => flip('clash')} />
             </div>
             <div className="settings-row">
-              <div>
-                <strong>Sinkron kalender</strong>
-                <div className="hint">Tampilkan cuti yang disetujui di kalender perusahaan.</div>
+              <div className="settings-row__label">
+                <span className="settings-row__icon">
+                  <CalendarSync size={18} />
+                </span>
+                <div>
+                  <strong>Sinkron kalender</strong>
+                  <div className="hint">Tampilkan cuti yang disetujui di kalender perusahaan.</div>
+                </div>
               </div>
               <Toggle on={toggles.calendar} onClick={() => flip('calendar')} />
             </div>
@@ -82,10 +103,6 @@ export default function Settings() {
               <strong>3 hari kerja</strong>
             </article>
           </div>
-          <p className="notice" style={{ marginTop: 14 }}>
-            Palet visual workspace: biru langit dan putih. Mode gelap tidak diaktifkan agar kesan
-            korporat tetap bersih dan terang.
-          </p>
         </section>
       </div>
     </div>

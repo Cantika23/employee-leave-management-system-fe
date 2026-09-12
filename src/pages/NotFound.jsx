@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom'
-import Brand from '../components/Brand'
+import Logo from '../components/Logo'
 
 export default function NotFound() {
   return (
     <div className="auth__panel" style={{ minHeight: '100vh' }}>
       <div className="auth-card" style={{ textAlign: 'center' }}>
-        <Brand />
+        <Logo showText />
         <h1 style={{ marginTop: 18 }}>Halaman tidak ditemukan</h1>
         <p className="hint">Tautan ini tidak membawa ke layar Aether Leave yang valid.</p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 22 }}>

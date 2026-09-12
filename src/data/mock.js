@@ -1,5 +1,17 @@
 export const DEMO_ACCOUNTS = [
   {
+    email: 'ach.khdafi@gmail.com',
+    password: 'aether123',
+    role: 'admin',
+    name: 'Achmad Khodafi',
+    title: 'System Administrator',
+    department: 'People & Culture',
+    location: 'Jakarta',
+    joinDate: '02 Mei 2019',
+    employeeId: 'ADM-1001',
+    phone: '+62 813 5567 2210',
+  },
+  {
     email: 'oktapermata28@gmail.com',
     password: 'aether123',
     role: 'hr',

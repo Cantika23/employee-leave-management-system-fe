@@ -1,11 +1,11 @@
-import Brand from '../Brand'
+import Logo from '../components/Logo'
 
 export default function Footer() {
   return (
     <footer className="footer">
       <div className="container footer__grid">
         <div>
-          <Brand />
+          <Logo showText textColor="#ffffff" />
           <p>Platform cuti karyawan yang dirancang untuk organisasi yang menghargai kejelasan, ketenangan, dan tata kelola yang rapi.</p>
         </div>
         <div>
@@ -23,7 +23,6 @@ export default function Footer() {
         <div>
           <h4>Akses</h4>
           <a href="/login">Masuk</a>
-          <a href="/register">Buat akun</a>
           <a href="/app">Dashboard</a>
         </div>
       </div>

@@ -7,7 +7,7 @@ const STORAGE_KEY = 'aether.user'
 
 function readUser() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = sessionStorage.getItem(STORAGE_KEY)
     return raw ? JSON.parse(raw) : null
   } catch {
     return null
@@ -47,7 +47,7 @@ export function AuthProvider({ children }) {
 
   // Validasi token di background saat aplikasi dibuka lagi.
   // Kalau token sudah kedaluwarsa, /api/me akan gagal (401) dan
-  // interceptor axios akan membersihkan localStorage, lalu kita logout di sini.
+  // interceptor axios akan membersihkan sessionStorage, lalu kita logout di sini.
   useEffect(() => {
     if (!user) return
     api
@@ -55,11 +55,11 @@ export function AuthProvider({ children }) {
       .then((res) => {
         const fresh = normalizeUser(res.data)
         setUser(fresh)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh))
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(fresh))
       })
       .catch(() => {
         setUser(null)
-        localStorage.removeItem(STORAGE_KEY)
+        sessionStorage.removeItem(STORAGE_KEY)
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -67,8 +67,8 @@ export function AuthProvider({ children }) {
   const value = useMemo(() => {
     function persist(next) {
       setUser(next)
-      if (next) localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      else localStorage.removeItem(STORAGE_KEY)
+      if (next) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      else sessionStorage.removeItem(STORAGE_KEY)
     }
 
     async function login(email, password) {
@@ -80,22 +80,6 @@ export function AuthProvider({ children }) {
         return normalized
       } catch (err) {
         throw new Error(extractErrorMessage(err, 'Email atau kata sandi tidak sesuai.'))
-      }
-    }
-
-    async function register(payload) {
-      try {
-        const res = await api.post('/register', {
-          name: payload.name,
-          email: payload.email,
-          password: payload.password,
-          department: payload.department,
-          phone: payload.phone,
-        })
-        saveToken(res.data.token)
-        persist(normalizeUser(res.data.user))
-      } catch (err) {
-        throw new Error(extractErrorMessage(err, 'Gagal membuat akun. Coba lagi.'))
       }
     }
 
@@ -116,7 +100,7 @@ export function AuthProvider({ children }) {
       return normalized
     }
 
-    return { user, login, register, logout, updateUser }
+    return { user, login, logout, updateUser }
   }, [user])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

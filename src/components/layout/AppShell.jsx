@@ -12,6 +12,7 @@ import {
   FilePlus2,
   History,
   UserRound,
+  UserCog,
 } from 'lucide-react'
 import Brand from '../Brand'
 import { useAuth } from '../../context/AuthContext'
@@ -26,9 +27,9 @@ const EMPLOYEE_MENU = [
 
 const MANAGER_MENU = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true, group: 'Utama' },
-  { to: '/app/leave/apply', label: 'Pengajuan Cuti', icon: FilePlus2, group: 'Cuti' },
   { to: '/app/approvals', label: 'Pengajuan Tim', icon: ClipboardCheck, group: 'Tim' },
   { to: '/app/leave/history', label: 'Riwayat Pengajuan', icon: History, group: 'Tim' },
+  { to: '/app/employees', label: 'Data Karyawan', icon: Users, group: 'Organisasi' },
   { to: '/app/reports', label: 'Laporan', icon: PieChart, group: 'Organisasi' },
   { to: '/app/profile', label: 'Profil', icon: UserRound, group: 'Akun' },
 ]
@@ -43,10 +44,19 @@ const HR_MENU = [
   { to: '/app/profile', label: 'Profil', icon: UserRound, group: 'Akun' },
 ]
 
+// Admin punya menu sendiri: sama dengan HR, ditambah "Kelola Role"
+// (khusus admin, lihat pages/admin/Roles.jsx).
+const ADMIN_MENU = [
+  ...HR_MENU.slice(0, -1),
+  { to: '/app/roles', label: 'Kelola Role', icon: UserCog, group: 'Organisasi' },
+  HR_MENU[HR_MENU.length - 1],
+]
+
 const MENU_BY_ROLE = {
   employee: EMPLOYEE_MENU,
   manager: MANAGER_MENU,
   hr: HR_MENU,
+  admin: ADMIN_MENU,
 }
 
 const PAGE_META = {
@@ -56,6 +66,7 @@ const PAGE_META = {
   '/app/profile': { title: 'Profil', subtitle: 'Kelola informasi akun Anda' },
   '/app/approvals': { title: 'Persetujuan', subtitle: 'Pengajuan tim menunggu keputusan' },
   '/app/employees': { title: 'Data Karyawan', subtitle: 'Tambah & aktif/nonaktif' },
+  '/app/roles': { title: 'Kelola Role', subtitle: 'Kelompok akun per role & tambah akun baru' },
   '/app/reports': { title: 'Laporan', subtitle: 'Ringkasan statistik cuti' },
   '/app/settings': { title: 'Pengaturan', subtitle: 'Konfigurasi sistem' },
 }
@@ -78,17 +89,20 @@ export default function AppShell() {
   const [notes, setNotes]  = useState(false)
   const [notifications, setNotifications] = useState([])
 
+  const loadNotifications = () => {
+    api
+      .get('/notifications')
+      .then((res) => setNotifications(res.data))
+      .catch(() => {})
+  }
+
   useEffect(() => {
-    const loadNotif = () => {
-      api.get('/notifications')
-        .then(res => setNotifications(res.data))
-        .catch(() => {})
-    }
+    loadNotifications()
 
-    loadNotif()
-
-    const interval = setInterval(loadNotif, 15000)
-
+    // Polling ringan tiap 30 detik, supaya titik merah di lonceng
+    // otomatis muncul kalau ada notifikasi baru (mis. hasil aksi
+    // di halaman Kelola Role) tanpa perlu refresh halaman manual.
+    const interval = setInterval(loadNotifications, 30000)
     return () => clearInterval(interval)
   }, [])
 
@@ -145,12 +159,9 @@ export default function AppShell() {
         <header
           className="topbar"
           style={{
-            background: '#ffffff',
-            borderBottom: '1px solid rgba(37, 99, 235, 0.12)',
-            boxShadow: '0 1px 8px rgba(37, 99, 235, 0.04)',
-            backdropFilter: 'blur(10px)',
+            background: 'linear-gradient(90deg, #f7fbff 0%, #f7fbff 55%, #ffffff 100%)',
+            borderBottom: '1px solid #e2edf7',
           }}
-
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button className="menu-btn" onClick={() => setOpen(true)} aria-label="Buka menu">
@@ -167,23 +178,32 @@ export default function AppShell() {
           </div>
           <div className="topbar__right">
             <div className="rel">
-              <button className="icon-btn" onClick={() => setNotes((v) => !v)} aria-label="Notifikasi">
+              <button
+                className="icon-btn"
+                onClick={() => {
+                  setNotes((v) => !v)
+                  loadNotifications()
+                }}
+                aria-label="Notifikasi"
+              >
                 <Bell size={18} />
-                {notifications.some(item => item.unread) && <span className="dot-alert" />}
+                {notifications.some((n) => n.unread) && <span className="dot-alert" />}
               </button>
               {notes && (
                 <div className="dropdown">
                   {notifications.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setNotes(false)
-
-                          if (item.url) {
-                            navigate(item.url)
-                          }
-                        }}
-                      >
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setNotes(false)
+                        if (item.unread) {
+                          api.patch(`/notifications/${item.id}/read`).catch(() => {})
+                          setNotifications((prev) =>
+                            prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n)),
+                          )
+                        }
+                      }}
+                    >
                       <strong>{item.title}</strong>
                       <div className="hint">{item.time}</div>
                     </button>

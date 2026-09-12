@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
-import Brand from '../Brand'
+import Logo from '../components/Logo'
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
@@ -9,7 +9,7 @@ export default function Navbar() {
   return (
     <header className="nav">
       <div className="nav__inner">
-        <Brand />
+        <Logo showText />
         <nav className="nav__links">
           <a href="#fitur">Fitur</a>
           <a href="#alur">Alur kerja</a>
@@ -17,11 +17,8 @@ export default function Navbar() {
           <a href="#faq">FAQ</a>
         </nav>
         <div className="nav__cta">
-          <Link to="/login" className="btn btn-ghost">
+          <Link to="/login" className="btn btn-primary">
             Masuk
-          </Link>
-          <Link to="/register" className="btn btn-primary">
-            Mulai uji coba
           </Link>
         </div>
         <button className="nav__toggle" onClick={() => setOpen((v) => !v)} aria-label="Menu">
@@ -33,8 +30,7 @@ export default function Navbar() {
           <a href="#fitur" onClick={() => setOpen(false)}>Fitur</a>
           <a href="#alur" onClick={() => setOpen(false)}>Alur kerja</a>
           <a href="#peran" onClick={() => setOpen(false)}>Peran</a>
-          <Link to="/login">Masuk</Link>
-          <Link to="/register" className="btn btn-primary">Mulai uji coba</Link>
+          <Link to="/login" className="btn btn-primary">Masuk</Link>
         </div>
       )}
     </header>

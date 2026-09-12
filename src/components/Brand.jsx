@@ -15,7 +15,7 @@ export default function Brand({
       style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         gap: 10,
         width: '100%',
         textDecoration: 'none',
@@ -27,8 +27,8 @@ export default function Brand({
         src={mitralLogo}
         alt="MITRAL Logo"
         style={{
-          width: 140,
-          height: 60,
+          width: 112,
+          height: 48,
           objectFit: 'contain',
         }}
       />
