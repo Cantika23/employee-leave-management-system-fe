@@ -8,6 +8,17 @@
     var(--canvas);
 }
 
+/* Anak grid ke-2 (topbar + workspace). Wajib dikasih min-width: 0,
+   karena default-nya grid item itu "min-width: auto" alias nggak
+   mau menyusut lebih kecil dari konten di dalamnya (mis. tabel
+   lebar) — akibatnya SELURUH HALAMAN ikut melebar & bisa digeser
+   ke samping di HP, padahal harusnya cuma tabelnya aja yang scroll
+   sendiri (lihat .table-wrap). min-width: 0 ini yang membolehkan
+   dia menyusut normal & membiarkan overflow ditangani di dalam. */
+.main-col {
+  min-width: 0;
+}
+
 /* ---------- Sidebar ---------- */
 .sidebar {
   background: #ffffff;
@@ -735,6 +746,54 @@
 
   .cal-cell {
     min-height: 64px;
+  }
+}
+
+/* ---------- HP kecil (≤560px) ---------- */
+@media (max-width: 560px) {
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .kpi {
+    padding: 14px;
+  }
+
+  .kpi b {
+    font-size: 1.3rem;
+  }
+
+  .workspace {
+    padding: 16px 14px 28px;
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .topbar {
+    padding: 0 14px;
+    gap: 8px;
+  }
+
+  .topbar__right {
+    gap: 6px;
+  }
+
+  /* Nama & jabatan di pojok kanan atas disembunyikan di layar
+     sempit, avatar-nya saja yang tetap kelihatan. */
+  .profile-btn span:not(.avatar) {
+    display: none;
+  }
+
+  .search {
+    display: none;
+  }
+
+  .dropdown {
+    right: -8px;
+    width: min(300px, 92vw);
   }
 }
 

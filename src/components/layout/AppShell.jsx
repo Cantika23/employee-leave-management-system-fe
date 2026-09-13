@@ -155,7 +155,7 @@ export default function AppShell() {
         </div>
       </aside>
 
-      <div>
+      <div className="main-col">
         <header
           className="topbar"
           style={{

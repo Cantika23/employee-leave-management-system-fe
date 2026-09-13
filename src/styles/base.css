@@ -21,6 +21,13 @@ body {
   background: var(--canvas);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+
+  /* Pengaman global: apapun yang kebetulan lebih lebar dari layar
+     di halaman manapun (tabel, kartu, dsb) TIDAK akan bikin seluruh
+     halaman bisa digeser ke samping. Yang perlu geser sendiri
+     (misal tabel) sudah ditangani lewat overflow:auto masing-masing
+     (lihat .table-wrap), jadi aman dipotong di sini. */
+  overflow-x: hidden;
 }
 
 button,
