@@ -3,7 +3,7 @@ import api from '../../api/axios'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { formatDate, initials, statusLabel } from '../../lib/format'
-import { Clock3, Search, ScrollText, CheckCircle2, XCircle, ClipboardList, RotateCcw } from 'lucide-react'
+import { Clock3, ScrollText, CheckCircle2, XCircle, ClipboardList } from 'lucide-react'
 import Logo from '../../components/Logo'
 
 const TYPE_FILTERS = [
@@ -125,59 +125,22 @@ function letterNumber(row, roleByName, fallbackName) {
 // 2) row.employee_nip       -> kalau nama field-nya beda
 // 3) row.employee?.nip      -> kalau backend kirim object employee ter-nested
 // 4) nipByName[nama]        -> dicocokkan manual dari data /employees berdasar nama
-//    (BISA GAGAL kalau user yang login tidak punya akses ke /employees,
-//    misalnya karyawan biasa yang endpoint direktorinya dibatasi untuk HR/Manager saja)
-// 5) user.nip                -> kalau baris ini surat milik diri sendiri, ambil dari
-//                               data akun yang sedang login (selalu tersedia)
-// 6) row.id                 -> fallback terakhir kalau memang belum ada NIP sama sekali
-function employeeNip(row, nipByName, user) {
-  const nameKey = (row.employee || user?.name || '')
+// 5) row.id                 -> fallback terakhir kalau memang belum ada NIP sama sekali
+function employeeNip(row, nipByName, fallbackName) {
+  const nameKey = (row.employee || fallbackName || '')
     .trim()
     .toLowerCase()
-
-  const isSelf =
-    !row.employee ||
-    row.employee.trim().toLowerCase() === (user?.name || '').trim().toLowerCase()
-
-  // Coba beberapa kemungkinan nama field "ID karyawan" di objek user,
-  // karena bisa jadi bukan user.nip melainkan user.employeeId / user.employee_id / user.id
-  const selfNip =
-    user?.nip ||
-    user?.employeeId ||
-    user?.employee_id ||
-    user?.nip_karyawan ||
-    user?.id
 
   return (
     row.nip ||
     row.employee_nip ||
     row.employee?.nip ||
     nipByName[nameKey] ||
-    (isSelf ? selfNip : null) ||
     row.id
   )
 }
 
-// --- ambil Jabatan / Departemen dengan prioritas serupa employeeNip.
-function employeeDepartment(row, deptByName, user) {
-  const nameKey = (row.employee || user?.name || '')
-    .trim()
-    .toLowerCase()
-
-  const isSelf =
-    !row.employee ||
-    row.employee.trim().toLowerCase() === (user?.name || '').trim().toLowerCase()
-
-  return (
-    row.department ||
-    row.employee?.department ||
-    deptByName[nameKey] ||
-    (isSelf ? (user?.department || user?.title) : null) ||
-    '-'
-  )
-}
-
-// --- warna aksen kecil per status, dipakai untuk kartu ringkasan & avatar ---
+// --- warna aksen kecil per status, dipakai untuk kartu ringkasan ---
 const STATUS_ACCENT = {
   pending: { bg: '#fff7e6', fg: '#b8720a', ring: '#f5d896' },
   approved: { bg: '#e9f7ef', fg: '#1c7a4d', ring: '#a9e3c4' },
@@ -198,9 +161,9 @@ export default function LeaveHistory() {
 
   const [monthFilter, setMonthFilter] = useState('all')
   const [yearFilter, setYearFilter] = useState('all')
+  const [employeeFilter, setEmployeeFilter] = useState('all')
 
   const [query, setQuery] = useState('')
-  const [searched, setSearched] = useState(false)
 
   // --- state untuk surat yang akan dicetak ---
   const [letterRow, setLetterRow] = useState(null)
@@ -273,16 +236,15 @@ export default function LeaveHistory() {
     return map
   }, [employeesList])
 
-  // peta nama karyawan (lowercase) -> departemen/jabatan
-  const deptByName = useMemo(() => {
-    const map = {}
-    employeesList.forEach((emp) => {
-      if (emp.name) {
-        map[emp.name.trim().toLowerCase()] = emp.dept || emp.department || emp.title
-      }
-    })
-    return map
-  }, [employeesList])
+  const employees = useMemo(() => {
+    return [
+      ...new Set(
+        requests.map(
+          (item) => item.employee || user.name
+        )
+      )
+    ]
+  }, [requests, user.name])
 
   const years = useMemo(() => {
     const yearsList = []
@@ -298,34 +260,36 @@ export default function LeaveHistory() {
     return yearsList
   }, [])
 
+  // Filter diterapkan langsung setiap kali salah satu dropdown/pencarian
+  // berubah, tanpa perlu tombol "Cari" terpisah.
   const rows = useMemo(() => {
-    let result = requests
-    if (searched) {
-      result = result.filter((item) => {
-        const date = new Date(item.submitted)
-        const matchType =
-          typeFilter === 'all' ||
-          item.type === typeFilter
-        const matchStatus =
-          statusFilter === 'all' ||
-          item.status === statusFilter
-        const matchMonth =
-          monthFilter === 'all' ||
-          String(date.getMonth() + 1)
-            .padStart(2, '0') === monthFilter
-        const matchYear =
-          yearFilter === 'all' ||
-          String(date.getFullYear()) === yearFilter
-        return (
-          matchType &&
-          matchStatus &&
-          matchMonth &&
-          matchYear
-        )
-
-      })
-
-    }
+    let result = requests.filter((item) => {
+      const date = new Date(item.submitted)
+      const matchType =
+        typeFilter === 'all' ||
+        item.type === typeFilter
+      const matchStatus =
+        statusFilter === 'all' ||
+        item.status === statusFilter
+      const matchMonth =
+        monthFilter === 'all' ||
+        String(date.getMonth() + 1)
+          .padStart(2, '0') === monthFilter
+      const matchYear =
+        yearFilter === 'all' ||
+        String(date.getFullYear()) === yearFilter
+      const matchEmployee =
+        employeeFilter === 'all' ||
+        (item.employee || user.name)
+        === employeeFilter
+      return (
+        matchType &&
+        matchStatus &&
+        matchMonth &&
+        matchYear &&
+        matchEmployee
+      )
+    })
 
     if (query.trim()) {
       result = result.filter((item) =>
@@ -342,11 +306,11 @@ export default function LeaveHistory() {
 
   }, [
     requests,
-    searched,
     typeFilter,
     statusFilter,
     monthFilter,
     yearFilter,
+    employeeFilter,
     query,
     user.name
   ])
@@ -360,24 +324,13 @@ export default function LeaveHistory() {
     return base
   }, [requests])
 
-  function resetFilter() {
-
-    setTypeFilter('all')
-    setStatusFilter('all')
-    setMonthFilter('all')
-    setYearFilter('all')
-    setQuery('')
-    setSearched(false)
-
-  }
-
   const filterActive =
-    searched &&
-    (typeFilter !== 'all' ||
-      statusFilter !== 'all' ||
-      monthFilter !== 'all' ||
-      yearFilter !== 'all' ||
-      query.trim() !== '')
+    typeFilter !== 'all' ||
+    statusFilter !== 'all' ||
+    monthFilter !== 'all' ||
+    yearFilter !== 'all' ||
+    employeeFilter !== 'all' ||
+    query.trim() !== ''
 
     return (
     <div>
@@ -447,7 +400,7 @@ export default function LeaveHistory() {
             marginBottom: 14,
           }}
         >
-          <div style={{ flex: '1 1 160px' }}>
+          <div style={{ flex: '1 1 150px' }}>
 
             <label
               style={{
@@ -491,7 +444,7 @@ export default function LeaveHistory() {
 
           </div>
 
-          <div style={{ flex: '1 1 160px' }}>
+          <div style={{ flex: '1 1 150px' }}>
 
             <label
               style={{
@@ -535,7 +488,7 @@ export default function LeaveHistory() {
 
           </div>
 
-          <div style={{ flex: '1 1 160px' }}>
+          <div style={{ flex: '1 1 150px' }}>
 
             <label
               style={{
@@ -579,7 +532,7 @@ export default function LeaveHistory() {
 
           </div>
 
-          <div style={{ flex: '1 1 160px' }}>
+          <div style={{ flex: '1 1 150px' }}>
 
             <label
               style={{
@@ -627,34 +580,50 @@ export default function LeaveHistory() {
 
           </div>
 
-          <div
-            style={{
-              display:'flex',
-              gap:8,
-              flex: '0 0 auto',
-            }}
-          >
+          <div style={{ flex: '1 1 150px' }}>
 
-            <button
-              className="btn"
-              onClick={resetFilter}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            <label
+              style={{
+                display:'block',
+                fontSize:'0.72rem',
+                color:'var(--muted)',
+                marginBottom:5,
+              }}
             >
-              <RotateCcw size={14} />
-              Reset
-            </button>
+              Karyawan
+            </label>
 
-            <button
-              className="btn btn-primary"
-              onClick={()=>
-                setSearched(true)
+            <select
+              value={employeeFilter}
+              onChange={(e)=>
+                setEmployeeFilter(e.target.value)
               }
+              style={{
+                width:'100%',
+                padding:'10px 12px',
+                borderRadius:12,
+                border:'1px solid #dbe7f3',
+                background:'#fff',
+              }}
             >
 
-              <Search size={14}/>
-              Cari
+              <option value="all">
+                Semua Karyawan
+              </option>
 
-            </button>
+              {
+                employees.map((emp)=>(
+
+                  <option
+                    key={emp}
+                    value={emp}
+                  >
+                    {emp}
+                  </option>
+
+                ))
+              }
+            </select>
           </div>
         </div>
 
@@ -798,8 +767,8 @@ export default function LeaveHistory() {
                 }}
               >
                 <ClipboardList size={28} style={{ opacity: 0.5 }} />
-                <div style={{ fontWeight: 600, color: '#334155' }}>Tidak ada pengajuan</div>
-                <div style={{ fontSize: '0.82rem' }}>Coba ubah atau reset untuk melihat data lainnya.</div>
+                <div style={{ fontWeight: 600, color: '#334155' }}>Tidak Ada Pengajuan</div>
+                <div style={{ fontSize: '0.82rem' }}>Coba ubah untuk melihat data lainnya.</div>
               </div>
             )
           }
@@ -887,12 +856,12 @@ export default function LeaveHistory() {
                     <tr>
                       <td style={{ padding:'2px 12px 2px 0', verticalAlign:'top' }}>Jabatan / Departemen</td>
                       <td style={{ padding:'2px 8px', verticalAlign:'top' }}>:</td>
-                      <td style={{ padding:'2px 0', verticalAlign:'top' }}>{employeeDepartment(letterRow, deptByName, user)}</td>
+                      <td style={{ padding:'2px 0', verticalAlign:'top' }}>{letterRow.department || '-'}</td>
                     </tr>
                     <tr>
                       <td style={{ padding:'2px 12px 2px 0', verticalAlign:'top' }}>Nomor Induk Pegawai</td>
                       <td style={{ padding:'2px 8px', verticalAlign:'top' }}>:</td>
-                      <td style={{ padding:'2px 0', verticalAlign:'top' }}>{employeeNip(letterRow, nipByName, user)}</td>
+                      <td style={{ padding:'2px 0', verticalAlign:'top' }}>{employeeNip(letterRow, nipByName, user.name)}</td>
                     </tr>
                   </tbody>
                 </table>

@@ -127,10 +127,6 @@ export default function Roles() {
         password: form.password,
         role: form.role,
         title: form.title,
-        // Departemen belum ada kolom terpisah di form ini, jadi
-        // dipetakan otomatis dari Jabatan (fallback "Umum" kalau
-        // jabatan kosong) supaya tetap memenuhi data yang backend
-        // butuhkan tanpa nanya dua hal yang mirip ke admin.
         department: form.title.trim() || 'Umum',
         phone: form.phone,
       }
@@ -251,6 +247,49 @@ export default function Roles() {
   return (
     <div>
       <style>{`
+        .person {
+          display: flex !important;
+          align-items: center !important;
+          gap: 10px !important;
+        }
+
+        .person > span:last-child {
+          display: flex !important;
+          flex-direction: column !important;
+          line-height: 1.35 !important;
+        }
+
+        .person > span:last-child strong {
+          font-size: 0.86rem;
+          color: var(--navy);
+        }
+
+        .person > span:last-child span {
+          font-size: 0.76rem;
+          color: var(--muted);
+        }
+
+        .person .avatar {
+          width: 36px !important;
+          height: 36px !important;
+          min-width: 36px !important;
+          min-height: 36px !important;
+          max-width: 36px !important;
+          max-height: 36px !important;
+          border-radius: 50% !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          flex-shrink: 0 !important;
+          font-size: 0.75rem !important;
+          font-weight: 700 !important;
+          line-height: 1 !important;
+          text-align: center !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          box-sizing: border-box !important;
+        }
+
         .roles-toolbar {
           display: flex;
           align-items: center;
@@ -482,7 +521,7 @@ export default function Roles() {
         <>
           <div className="page-head">
             <div>
-              <h1>Kelola Role</h1>
+              <h3>Kelola Role</h3>
               <p>Kelompok akun per role &amp; tambah akun baru.</p>
             </div>
 

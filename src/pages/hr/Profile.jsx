@@ -71,13 +71,6 @@ export default function Profile() {
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <h1>Profil</h1>
-          <p>Identitas kerja dan saldo cuti Anda.</p>
-        </div>
-      </div>
-
       <div className="form-grid">
         <div style={{ display: 'grid', gap: 16 }}>
         {/* ---- Kartu profil bergaya badge: avatar besar overlap di atas kartu ---- */}

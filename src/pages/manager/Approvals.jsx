@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { HeartPulse, Plane, ScrollText, Sparkles, Clock, Check, X, ShieldCheck, Paperclip } from 'lucide-react'
+import { HeartPulse, Plane, ScrollText, Sparkles, Clock, Check, X, ShieldCheck, Paperclip, ShieldX } from 'lucide-react'
 import api from '../../api/axios'
 import { formatDate, initials } from '../../lib/format'
 import { useToast } from '../../context/ToastContext'
@@ -233,7 +233,7 @@ export default function Approvals() {
 
       <div className="page-head">
         <div>
-          <h1>Persetujuan</h1>
+          <h3>Persetujuan</h3>
           <p>
             Tinjau pengajuan sebelum memberikan keputusan.
           </p>
@@ -290,15 +290,15 @@ export default function Approvals() {
               height: 52,
               borderRadius: 16,
               background: 'rgba(16, 185, 129, 0.1)',
-              color: '#10b981',
+              color: '#c23e19',
               marginBottom: 4,
             }}
           >
-            <ShieldCheck size={24} />
+            <ShieldX size={24} />
           </span>
-          <strong style={{ fontSize: 15 }}>Semua sudah beres</strong>
+          <strong style={{ fontSize: 15 }}>Tidak ditemukan pengajuan</strong>
           <p className="hint" style={{ margin: 0, maxWidth: 320 }}>
-            Tidak ada permohonan yang menunggu. Kalender tim sedang seimbang.
+            Tidak ada permohonan yang menunggu.
           </p>
         </div>
       )}

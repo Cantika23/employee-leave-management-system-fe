@@ -95,28 +95,10 @@ export default function LeaveApply() {
     }
   }
 
-  if (loading) {
-    return (
-      <div>
-        <div className="page-head">
-          <div>
-            <h1>Ajukan Pengajuan</h1>
-            <p>Memuat data...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <h1>Ajukan Pengajuan</h1>
-          <p>Lengkapi jenis, tanggal, dan alasan pengajuan Anda.</p>
-        </div>
-      </div>
-
       <div
         style={{
           display: 'flex',

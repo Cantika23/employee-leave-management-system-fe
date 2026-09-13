@@ -222,16 +222,6 @@ export default function Reports() {
           overflow: hidden;
         }
 
-        .filter-card::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          right: 0;
-          top: 0;
-          height: 4px;
-          background: linear-gradient(90deg, #2563eb, #60a5fa);
-        }
-
         .filter-card__title {
           display: flex;
           align-items: center;
@@ -578,11 +568,6 @@ export default function Reports() {
             </button>
           )}
         </div>
-
-        <div className="filter-card__footer">
-          Menampilkan <strong>{filteredRequests.length}</strong> dari{' '}
-          <strong>{data?.leave_requests?.length ?? 0}</strong> data
-        </div>
       </div>
 
       {/* Ringkasan */}
@@ -618,11 +603,7 @@ export default function Reports() {
       </div>
 
       {/* Tabel Laporan */}
-      <section className="report-panel" style={{ marginTop: 18 }}>
-        <div className="report-panel__head">
-          <h2>Rekap Data Pengajuan Cuti</h2>
-        </div>
-
+      <section className="report-panel" style={{ marginTop: 20 }}>
         <div className="report-table-wrap">
           <table className="report-table">
             <thead>

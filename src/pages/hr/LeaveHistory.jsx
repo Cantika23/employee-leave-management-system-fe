@@ -3,7 +3,7 @@ import api from '../../api/axios'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { formatDate, initials, statusLabel } from '../../lib/format'
-import { Clock3, Search, ScrollText, CheckCircle2, XCircle, ClipboardList, RotateCcw } from 'lucide-react'
+import { Clock3, ScrollText, CheckCircle2, XCircle, ClipboardList } from 'lucide-react'
 import Logo from '../../components/Logo'
 
 const TYPE_FILTERS = [
@@ -164,7 +164,6 @@ export default function LeaveHistory() {
   const [employeeFilter, setEmployeeFilter] = useState('all')
 
   const [query, setQuery] = useState('')
-  const [searched, setSearched] = useState(false)
 
   // --- state untuk surat yang akan dicetak ---
   const [letterRow, setLetterRow] = useState(null)
@@ -261,39 +260,36 @@ export default function LeaveHistory() {
     return yearsList
   }, [])
 
+  // Filter diterapkan langsung setiap kali salah satu dropdown/pencarian
+  // berubah, tanpa perlu tombol "Cari" terpisah.
   const rows = useMemo(() => {
-    let result = requests
-    if (searched) {
-      result = result.filter((item) => {
-        const date = new Date(item.submitted)
-        const matchType =
-          typeFilter === 'all' ||
-          item.type === typeFilter
-        const matchStatus =
-          statusFilter === 'all' ||
-          item.status === statusFilter
-        const matchMonth =
-          monthFilter === 'all' ||
-          String(date.getMonth() + 1)
-            .padStart(2, '0') === monthFilter
-        const matchYear =
-          yearFilter === 'all' ||
-          String(date.getFullYear()) === yearFilter
-        const matchEmployee =
-          employeeFilter === 'all' ||
-          (item.employee || user.name)
-          === employeeFilter
-        return (
-          matchType &&
-          matchStatus &&
-          matchMonth &&
-          matchYear &&
-          matchEmployee
-        )
-
-      })
-
-    }
+    let result = requests.filter((item) => {
+      const date = new Date(item.submitted)
+      const matchType =
+        typeFilter === 'all' ||
+        item.type === typeFilter
+      const matchStatus =
+        statusFilter === 'all' ||
+        item.status === statusFilter
+      const matchMonth =
+        monthFilter === 'all' ||
+        String(date.getMonth() + 1)
+          .padStart(2, '0') === monthFilter
+      const matchYear =
+        yearFilter === 'all' ||
+        String(date.getFullYear()) === yearFilter
+      const matchEmployee =
+        employeeFilter === 'all' ||
+        (item.employee || user.name)
+        === employeeFilter
+      return (
+        matchType &&
+        matchStatus &&
+        matchMonth &&
+        matchYear &&
+        matchEmployee
+      )
+    })
 
     if (query.trim()) {
       result = result.filter((item) =>
@@ -310,7 +306,6 @@ export default function LeaveHistory() {
 
   }, [
     requests,
-    searched,
     typeFilter,
     statusFilter,
     monthFilter,
@@ -329,26 +324,13 @@ export default function LeaveHistory() {
     return base
   }, [requests])
 
-  function resetFilter() {
-
-    setTypeFilter('all')
-    setStatusFilter('all')
-    setMonthFilter('all')
-    setYearFilter('all')
-    setEmployeeFilter('all')
-    setQuery('')
-    setSearched(false)
-
-  }
-
   const filterActive =
-    searched &&
-    (typeFilter !== 'all' ||
-      statusFilter !== 'all' ||
-      monthFilter !== 'all' ||
-      yearFilter !== 'all' ||
-      employeeFilter !== 'all' ||
-      query.trim() !== '')
+    typeFilter !== 'all' ||
+    statusFilter !== 'all' ||
+    monthFilter !== 'all' ||
+    yearFilter !== 'all' ||
+    employeeFilter !== 'all' ||
+    query.trim() !== ''
 
     return (
     <div>
@@ -643,36 +625,6 @@ export default function LeaveHistory() {
               }
             </select>
           </div>
-
-          <div
-            style={{
-              display:'flex',
-              gap:8,
-              flex: '0 0 auto',
-            }}
-          >
-
-            <button
-              className="btn"
-              onClick={resetFilter}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            >
-              <RotateCcw size={14} />
-              Reset
-            </button>
-
-            <button
-              className="btn btn-primary"
-              onClick={()=>
-                setSearched(true)
-              }
-            >
-
-              <Search size={14}/>
-              Cari
-
-            </button>
-          </div>
         </div>
 
         {
@@ -815,8 +767,8 @@ export default function LeaveHistory() {
                 }}
               >
                 <ClipboardList size={28} style={{ opacity: 0.5 }} />
-                <div style={{ fontWeight: 600, color: '#334155' }}>Tidak ada permohonan pada filter ini</div>
-                <div style={{ fontSize: '0.82rem' }}>Coba ubah atau reset filter untuk melihat data lainnya.</div>
+                <div style={{ fontWeight: 600, color: '#334155' }}>Tidak Ada Pengajuan</div>
+                <div style={{ fontSize: '0.82rem' }}>Coba ubah untuk melihat data lainnya.</div>
               </div>
             )
           }
