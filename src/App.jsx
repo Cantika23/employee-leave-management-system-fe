@@ -9,11 +9,13 @@ import NotFound from './pages/NotFound'
 import EmployeeDashboard from './pages/employee/Dashboard'
 import EmployeeLeaveApply from './pages/employee/LeaveApply'
 import EmployeeLeaveHistory from './pages/employee/LeaveHistory'
+import EmployeeAttendance from './pages/employee/Attendance'
 import EmployeeProfile from './pages/employee/Profile'
 
 import ManagerDashboard from './pages/manager/Dashboard'
 import ManagerLeaveApply from './pages/manager/LeaveApply'
 import ManagerLeaveHistory from './pages/manager/LeaveHistory'
+import ManagerAttendance from './pages/manager/Attendance'
 import ManagerApprovals from './pages/manager/Approvals'
 import ManagerApprovalDetail from './pages/manager/ApprovalDetail'
 import ManagerReports from './pages/manager/Reports'
@@ -23,6 +25,7 @@ import ManagerProfile from './pages/manager/Profile'
 import HrDashboard from './pages/hr/Dashboard'
 import HrLeaveApply from './pages/hr/LeaveApply'
 import HrLeaveHistory from './pages/hr/LeaveHistory'
+import HrAttendance from './pages/hr/Attendance'
 import HrApprovals from './pages/hr/Approvals'
 import HrEmployees from './pages/hr/Employees'
 import HrReports from './pages/hr/Reports'
@@ -32,6 +35,7 @@ import HrProfile from './pages/hr/Profile'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminLeaveApply from './pages/admin/LeaveApply'
 import AdminLeaveHistory from './pages/admin/LeaveHistory'
+import AdminAttendance from './pages/admin/Attendance'
 import AdminApprovals from './pages/admin/Approvals'
 import AdminEmployees from './pages/admin/Employees'
 import AdminRoles from './pages/admin/Roles'
@@ -119,7 +123,17 @@ export default function App() {
             />
           }
         />
-        
+        <Route
+          path="attendance"
+          element={
+            <ByRole
+              employee={<EmployeeAttendance />}
+              manager={<ManagerAttendance />}
+              hr={<HrAttendance />}
+              admin={<AdminAttendance />}
+            />
+          }
+        />
         <Route
           path="approvals"
           element={<ByRole manager={<ManagerApprovals />} hr={<HrApprovals />} admin={<AdminApprovals />} />}

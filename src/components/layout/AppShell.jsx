@@ -13,20 +13,32 @@ import {
   History,
   UserRound,
   UserCog,
+  Clock,
 } from 'lucide-react'
+
 import Brand from '../Brand'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
 
+// ============================================================
+// MENU EMPLOYEE
+// ============================================================
+
 const EMPLOYEE_MENU = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true, group: 'Utama' },
+  { to: '/app/attendance', label: 'Absensi', icon: Clock, group: 'Kehadiran' },
   { to: '/app/leave/apply', label: 'Pengajuan Cuti', icon: FilePlus2, group: 'Cuti' },
   { to: '/app/leave/history', label: 'Riwayat Cuti', icon: History, group: 'Cuti' },
   { to: '/app/profile', label: 'Profil', icon: UserRound, group: 'Akun' },
 ]
 
+// ============================================================
+// MENU MANAGER
+// ============================================================
+
 const MANAGER_MENU = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true, group: 'Utama' },
+  { to: '/app/attendance', label: 'Absensi', icon: Clock, group: 'Kehadiran' },
   { to: '/app/approvals', label: 'Pengajuan Tim', icon: ClipboardCheck, group: 'Tim' },
   { to: '/app/leave/history', label: 'Riwayat Pengajuan', icon: History, group: 'Tim' },
   { to: '/app/employees', label: 'Data Karyawan', icon: Users, group: 'Organisasi' },
@@ -34,8 +46,13 @@ const MANAGER_MENU = [
   { to: '/app/profile', label: 'Profil', icon: UserRound, group: 'Akun' },
 ]
 
+// ============================================================
+// MENU HR
+// ============================================================
+
 const HR_MENU = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true, group: 'Utama' },
+  { to: '/app/attendance', label: 'Absensi', icon: Clock, group: 'Kehadiran' },
   { to: '/app/leave/apply', label: 'Pengajuan Cuti', icon: FilePlus2, group: 'Cuti' },
   { to: '/app/leave/history', label: 'Riwayat Cuti', icon: History, group: 'Cuti' },
   { to: '/app/approvals', label: 'Persetujuan', icon: ClipboardCheck, group: 'Tim' },
@@ -44,14 +61,22 @@ const HR_MENU = [
   { to: '/app/profile', label: 'Profil', icon: UserRound, group: 'Akun' },
 ]
 
+// ============================================================
+// MENU ADMIN
+// ============================================================
 // Admin punya menu sendiri: sama dengan HR, tapi tanpa "Persetujuan" karena
 // admin bukan pihak yang menyetujui/menolak cuti (itu wewenang manager/HR).
 // Ditambah "Kelola Role" khusus admin (lihat pages/admin/Roles.jsx).
+
 const ADMIN_MENU = [
   ...HR_MENU.filter((item) => item.to !== '/app/approvals').slice(0, -1),
   { to: '/app/roles', label: 'Kelola Role', icon: UserCog, group: 'Organisasi' },
   HR_MENU[HR_MENU.length - 1],
 ]
+
+// ============================================================
+// MENU BERDASARKAN ROLE
+// ============================================================
 
 const MENU_BY_ROLE = {
   employee: EMPLOYEE_MENU,
@@ -60,8 +85,13 @@ const MENU_BY_ROLE = {
   admin: ADMIN_MENU,
 }
 
+// ============================================================
+// PAGE META
+// ============================================================
+
 const PAGE_META = {
   '/app': { title: '', subtitle: '' },
+  '/app/attendance': { title: 'Absensi', subtitle: 'Check in, check out, dan lokasi kerja' },
   '/app/leave/apply': { title: 'Pengajuan Cuti', subtitle: 'Buat pengajuan cuti/izin/sakit baru' },
   '/app/leave/history': { title: 'Riwayat Cuti', subtitle: 'Lihat riwayat pengajuan Anda' },
   '/app/profile': { title: 'Profil', subtitle: 'Kelola informasi akun Anda' },
@@ -72,6 +102,10 @@ const PAGE_META = {
   '/app/settings': { title: 'Pengaturan', subtitle: 'Konfigurasi sistem' },
 }
 
+// ============================================================
+// HELPER
+// ============================================================
+
 function initials(name = '') {
   return name
     .split(' ')
@@ -81,14 +115,23 @@ function initials(name = '') {
     .toUpperCase()
 }
 
+// ============================================================
+// APP SHELL
+// ============================================================
+
 export default function AppShell() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const pageMeta = PAGE_META[location.pathname] || { title: 'Dashboard', subtitle: '' }
+
   const [open, setOpen] = useState(false)
-  const [notes, setNotes]  = useState(false)
+  const [notes, setNotes] = useState(false)
   const [notifications, setNotifications] = useState([])
+
+  // ==========================================================
+  // NOTIFICATIONS
+  // ==========================================================
 
   const loadNotifications = () => {
     api
@@ -107,6 +150,10 @@ export default function AppShell() {
     return () => clearInterval(interval)
   }, [])
 
+  // ==========================================================
+  // MENU
+  // ==========================================================
+
   const items = MENU_BY_ROLE[user.role] || EMPLOYEE_MENU
 
   const grouped = items.reduce((acc, item) => {
@@ -115,17 +162,29 @@ export default function AppShell() {
     return acc
   }, {})
 
+  // ==========================================================
+  // RENDER
+  // ==========================================================
+
   return (
     <div className="app-shell">
+      {/* Mobile Overlay */}
       {open && <div className="overlay" onClick={() => setOpen(false)} />}
+
+      {/* ======================================================
+          SIDEBAR
+      ====================================================== */}
       <aside className={`sidebar ${open ? 'is-open' : ''}`}>
         <Brand to="/app" />
+
         <nav>
           {Object.entries(grouped).map(([group, list]) => (
             <div key={group}>
               <div className="side-group">{group}</div>
+
               {list.map((item) => {
                 const Icon = item.icon
+
                 return (
                   <NavLink
                     key={item.to}
@@ -142,12 +201,14 @@ export default function AppShell() {
             </div>
           ))}
         </nav>
+
+        {/* Sidebar Footer */}
         <div className="sidebar__foot">
           <button
             className="side-link"
             onClick={() => {
               logout()
-              navigate('/')
+              navigate('/login')
             }}
           >
             <LogOut size={18} />
@@ -156,7 +217,13 @@ export default function AppShell() {
         </div>
       </aside>
 
+      {/* ======================================================
+          MAIN COLUMN
+      ====================================================== */}
       <div className="main-col">
+        {/* ====================================================
+            TOPBAR
+        ==================================================== */}
         <header
           className="topbar"
           style={{
@@ -165,9 +232,12 @@ export default function AppShell() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Mobile Menu Button */}
             <button className="menu-btn" onClick={() => setOpen(true)} aria-label="Buka menu">
               <Menu size={18} />
             </button>
+
+            {/* Page Title */}
             <div>
               <div style={{ fontWeight: 700, fontSize: 18, lineHeight: 1.2 }}>{pageMeta.title}</div>
               {pageMeta.subtitle && (
@@ -177,6 +247,10 @@ export default function AppShell() {
               )}
             </div>
           </div>
+
+          {/* ==================================================
+              NOTIFICATIONS + PROFILE
+          ================================================== */}
           <div className="topbar__right">
             <div className="rel">
               <button
@@ -190,6 +264,7 @@ export default function AppShell() {
                 <Bell size={18} />
                 {notifications.some((n) => n.unread) && <span className="dot-alert" />}
               </button>
+
               {notes && (
                 <div className="dropdown">
                   {notifications.map((item) => (
@@ -209,6 +284,7 @@ export default function AppShell() {
                       <div className="hint">{item.time}</div>
                     </button>
                   ))}
+
                   {notifications.length === 0 && (
                     <button disabled>
                       <span className="hint">Tidak ada notifikasi.</span>
@@ -217,6 +293,7 @@ export default function AppShell() {
                 </div>
               )}
             </div>
+
             <button className="profile-btn" onClick={() => navigate('/app/profile')}>
               <span className="avatar">{initials(user.name)}</span>
               <span>
@@ -226,6 +303,10 @@ export default function AppShell() {
             </button>
           </div>
         </header>
+
+        {/* ====================================================
+            WORKSPACE
+        ==================================================== */}
         <main className="workspace">
           <Outlet />
         </main>

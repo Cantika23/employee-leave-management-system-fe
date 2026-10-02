@@ -19,7 +19,7 @@ const ROLE_META = [
 const emptyForm = {
   name: '',
   email: '',
-  password: '',
+  password: 'aether123',
   role: 'employee',
   title: '',
   phone: '',
@@ -113,11 +113,6 @@ export default function Roles() {
       return
     }
 
-    if (form.password.trim().length < 6) {
-      push('Password minimal 6 karakter.', 'error')
-      return
-    }
-
     setSaving(true)
 
     try {
@@ -137,7 +132,7 @@ export default function Roles() {
       setCreatedResult({
         name: newAccount.name,
         email: newAccount.email,
-        password: form.password,
+        password: res.data.default_password,
       })
 
       setForm(emptyForm)
@@ -749,10 +744,8 @@ export default function Roles() {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={form.password}
-                    onChange={updateField('password')}
-                    placeholder="Minimal 6 karakter"
+                    readOnly
                     style={{ paddingRight: 38 }}
-                    required
                   />
                   <button
                     type="button"

@@ -50,7 +50,7 @@ export default function Login() {
     setLoading(true)
     try {
       await login(form.email, form.password)
-      push('Selamat datang kembali di Employee Leave')
+      push('Selamat datang kembali di Employee Management System')
       navigate('/app')
     } catch (err) {
       setError(err?.message || 'Email atau kata sandi salah. Periksa kembali data Anda.')
@@ -126,7 +126,7 @@ export default function Login() {
               paddingBottom: 24,
             }}
           >
-            <Link to="/" aria-label="Kembali ke beranda" style={{ display: 'inline-flex' }}>
+            <Link to="/login" aria-label="Kembali ke beranda" style={{ display: 'inline-flex' }}>
               <Logo size={50} showText={false} />
             </Link>
 
@@ -221,7 +221,7 @@ export default function Login() {
                 />
                 Ingat perangkat ini
               </label>
-              <span className="hint">Lupa sandi? Hubungi HR</span>
+              <span className="hint">Lupa sandi? Hubungi Admin</span>
             </div>
 
             {error && <p className="error-text">{error}</p>}
