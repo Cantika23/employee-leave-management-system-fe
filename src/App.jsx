@@ -26,6 +26,7 @@ import HrDashboard from './pages/hr/Dashboard'
 import HrLeaveApply from './pages/hr/LeaveApply'
 import HrLeaveHistory from './pages/hr/LeaveHistory'
 import HrAttendance from './pages/hr/Attendance'
+import HrAttendanceReport from './pages/hr/AttendanceReport'
 import HrApprovals from './pages/hr/Approvals'
 import HrEmployees from './pages/hr/Employees'
 import HrReports from './pages/hr/Reports'
@@ -134,6 +135,8 @@ export default function App() {
             />
           }
         />
+        {/* Rekap absensi seluruh karyawan: HR (admin ikut memakai halaman HR) */}
+        <Route path="attendance/report" element={<ByRole hr={<HrAttendanceReport />} />} />
         <Route
           path="approvals"
           element={<ByRole manager={<ManagerApprovals />} hr={<HrApprovals />} admin={<AdminApprovals />} />}

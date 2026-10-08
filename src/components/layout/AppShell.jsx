@@ -14,6 +14,7 @@ import {
   UserRound,
   UserCog,
   Clock,
+  CalendarCheck,
 } from 'lucide-react'
 
 import Brand from '../Brand'
@@ -52,7 +53,8 @@ const MANAGER_MENU = [
 
 const HR_MENU = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true, group: 'Utama' },
-  { to: '/app/attendance', label: 'Absensi', icon: Clock, group: 'Kehadiran' },
+  { to: '/app/attendance', label: 'Absensi', icon: Clock, end: true, group: 'Kehadiran' },
+  { to: '/app/attendance/report', label: 'Rekap Absensi', icon: CalendarCheck, group: 'Kehadiran' },
   { to: '/app/leave/apply', label: 'Pengajuan Cuti', icon: FilePlus2, group: 'Cuti' },
   { to: '/app/leave/history', label: 'Riwayat Cuti', icon: History, group: 'Cuti' },
   { to: '/app/approvals', label: 'Persetujuan', icon: ClipboardCheck, group: 'Tim' },
@@ -92,6 +94,7 @@ const MENU_BY_ROLE = {
 const PAGE_META = {
   '/app': { title: '', subtitle: '' },
   '/app/attendance': { title: 'Absensi', subtitle: 'Check in, check out, dan lokasi kerja' },
+  '/app/attendance/report': { title: 'Rekap Absensi', subtitle: 'Pantau dan kelola data absensi karyawan' },
   '/app/leave/apply': { title: 'Pengajuan Cuti', subtitle: 'Buat pengajuan cuti/izin/sakit baru' },
   '/app/leave/history': { title: 'Riwayat Cuti', subtitle: 'Lihat riwayat pengajuan Anda' },
   '/app/profile': { title: 'Profil', subtitle: 'Kelola informasi akun Anda' },
