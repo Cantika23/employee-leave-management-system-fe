@@ -19,10 +19,8 @@ const WORK_LABEL = { onsite: 'Onsite', wfh: 'WFH', remote: 'Remote' };
 
 const STATUS = {
     present: { label: 'Hadir', cls: 'att-badge--present' },
-    late: { label: 'Terlambat', cls: 'att-badge--late' },
     absent: { label: 'Tidak hadir', cls: 'att-badge--absent' },
     leave: { label: 'Cuti', cls: 'att-badge--leave' },
-    holiday: { label: 'Libur', cls: 'att-badge--holiday' },
 };
 
 /* ---------- helpers ---------- */
@@ -171,7 +169,9 @@ export default function Attendance() {
         setHistory((h) => ({ ...h, loading: true }));
         try {
             const { data } = await api.get(ENDPOINT.history, { params: range });
-            setHistory({ rows: data.data ?? [], summary: data.summary ?? null, failed: false, loading: false });
+            // Status 'late' dari backend dianggap 'present' (status Terlambat sudah dihapus)
+            const rows = (data.data ?? []).map((r) => (r.status === 'late' ? { ...r, status: 'present' } : r));
+            setHistory({ rows, summary: data.summary ?? null, failed: false, loading: false });
         } catch {
             setHistory({ rows: [], summary: null, failed: true, loading: false });
         }
@@ -227,15 +227,14 @@ export default function Attendance() {
           ? { text: 'Dalam Jam Kerja', cls: '' }
           : { text: 'Belum absen', cls: 'att-pill--idle' };
 
-    // Pakai ringkasan dari server kalau ada, kalau tidak hitung dari baris riwayat
+    // Dihitung dari baris riwayat (status 'late' sudah digabung ke 'present'),
+    // jadi angka Hadir selalu konsisten dengan tabel
     const summary = useMemo(() => {
         const count = (s) => history.rows.filter((r) => r.status === s).length;
-        const fallback = {
+        return {
             present: count('present'),
-            late: count('late'),
             absent: count('absent'),
         };
-        return { ...fallback, ...(history.summary ?? {}) };
     }, [history]);
 
     const visibleRows = useMemo(
@@ -245,7 +244,6 @@ export default function Attendance() {
 
     const stats = [
         { key: 'present', label: 'Hadir', value: summary.present, icon: 'users', tone: 'green' },
-        { key: 'late', label: 'Terlambat', value: summary.late, icon: 'clock', tone: 'amber' },
         { key: 'absent', label: 'Tidak Hadir', value: summary.absent, icon: 'x', tone: 'red' },
     ];
 
