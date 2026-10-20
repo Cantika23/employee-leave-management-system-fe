@@ -67,11 +67,14 @@ const HR_MENU = [
 // MENU ADMIN
 // ============================================================
 // Admin punya menu sendiri: sama dengan HR, tapi tanpa "Persetujuan" karena
-// admin bukan pihak yang menyetujui/menolak cuti (itu wewenang manager/HR).
+// admin bukan pihak yang menyetujui/menolak cuti (itu wewenang manager/HR),
+// dan tanpa "Rekap Absensi" karena rekap absensi dikelola HR.
 // Ditambah "Kelola Role" khusus admin (lihat pages/admin/Roles.jsx).
 
 const ADMIN_MENU = [
-  ...HR_MENU.filter((item) => item.to !== '/app/approvals').slice(0, -1),
+  ...HR_MENU.filter(
+    (item) => item.to !== '/app/approvals' && item.to !== '/app/attendance/report',
+  ).slice(0, -1),
   { to: '/app/roles', label: 'Kelola Role', icon: UserCog, group: 'Organisasi' },
   HR_MENU[HR_MENU.length - 1],
 ]

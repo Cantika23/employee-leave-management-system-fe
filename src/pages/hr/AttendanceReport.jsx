@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx-js-style';
 import api from '../../api/axios';
 import '../Attendance.css';
 import logoMitral from '../../assets/mitral.png';
-
+ 
 const ENDPOINT = '/attendance/recap';
 const PER_PAGE = 10;
 const statusUrl = (id) => `/attendance/${id}/status`;
 const WORK_LABEL = { onsite: 'Onsite', wfh: 'WFH', remote: 'Remote' };
-
+ 
 // Daftar departemen (disamakan dengan halaman lain)
 const DEPARTMENTS = [
     'Technology',
@@ -19,36 +19,58 @@ const DEPARTMENTS = [
     'Human Resources',
     'Operations',
 ];
-
+ 
 const STATUS = {
     present: { label: 'Hadir', cls: 'att-badge--present' },
     absent: { label: 'Tidak hadir', cls: 'att-badge--absent' },
     leave: { label: 'Cuti', cls: 'att-badge--leave' },
 };
-
+ 
 const MODES = [
     { key: 'day', label: 'Harian' },
     { key: 'week', label: 'Mingguan' },
     { key: 'month', label: 'Bulanan' },
     { key: 'year', label: 'Tahunan' },
 ];
-
+ 
 /* ---------- helpers ---------- */
 const pad = (n) => String(n).padStart(2, '0');
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-
+ 
 const monthRange = () => {
     const n = new Date();
     return { from: ymd(new Date(n.getFullYear(), n.getMonth(), 1)), to: ymd(new Date(n.getFullYear(), n.getMonth() + 1, 0)) };
 };
-
+ 
 const formatTime = (t) => (t ? String(t).slice(0, 5) : '-');
 const toDate = (s) => new Date(`${s}T00:00:00`);
 const fmtDate = (s) => toDate(s).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 const dayName = (s) => toDate(s).toLocaleDateString('id-ID', { weekday: 'long' });
 const isWeekend = (s) => [0, 6].includes(toDate(s).getDay());
 const monthName = (m) => new Date(2000, m, 1).toLocaleDateString('id-ID', { month: 'long' });
-
+ 
+const initials = (name) =>
+    String(name ?? '?')
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase();
+ 
+// Daftar nomor halaman dengan "…" bila terlalu banyak
+const pageList = (cur, total) => {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const out = [1];
+    const s = Math.max(2, cur - 1);
+    const e = Math.min(total - 1, cur + 1);
+    if (s > 2) out.push('…');
+    for (let i = s; i <= e; i += 1) out.push(i);
+    if (e < total - 1) out.push('…');
+    out.push(total);
+    return out;
+};
+ 
 // "2026-W41" <-> tanggal
 const isoWeekValue = (d) => {
     const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -64,7 +86,7 @@ const weekValueToMonday = (v) => {
     mon.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7) + (w - 1) * 7);
     return mon;
 };
-
+ 
 const defaultPeriod = (mode) => {
     const n = new Date();
     if (mode === 'day') return ymd(n);
@@ -72,7 +94,7 @@ const defaultPeriod = (mode) => {
     if (mode === 'month') return `${n.getFullYear()}-${pad(n.getMonth() + 1)}`;
     return String(n.getFullYear());
 };
-
+ 
 // Rentang tanggal dari jenis rekap + nilai periode
 const periodRange = (mode, value) => {
     if (mode === 'day') return { from: value, to: value };
@@ -88,7 +110,7 @@ const periodRange = (mode, value) => {
     }
     return { from: `${value}-01-01`, to: `${value}-12-31` };
 };
-
+ 
 const periodTitle = (mode, value, r) => {
     if (mode === 'day') return fmtDate(value);
     if (mode === 'week') return `${fmtDate(r.from)} s/d ${fmtDate(r.to)}`;
@@ -98,7 +120,7 @@ const periodTitle = (mode, value, r) => {
     }
     return `Tahun ${value}`;
 };
-
+ 
 const daysBetween = (from, to) => {
     const out = [];
     const d = toDate(from);
@@ -109,7 +131,7 @@ const daysBetween = (from, to) => {
     }
     return out;
 };
-
+ 
 const countStatus = (records) => {
     const c = { present: 0, absent: 0, leave: 0 };
     records.forEach((r) => {
@@ -117,10 +139,10 @@ const countStatus = (records) => {
     });
     return c;
 };
-
+ 
 // Persentase kehadiran untuk tampilan (format Indonesia: 85,5%)
 const pctText = (n, tot) => (tot ? `${((n / tot) * 100).toFixed(1).replace('.', ',')}%` : '0,0%');
-
+ 
 // Ambil SEMUA halaman dari endpoint recap
 const fetchAll = async (params) => {
     const all = [];
@@ -140,7 +162,7 @@ const fetchAll = async (params) => {
     } while (current <= last);
     return { all, summary, departments };
 };
-
+ 
 /* ---------- gaya tabel rekap (ala lembar Excel) ---------- */
 const TH = {
     border: '1px solid #bfdbfe',
@@ -154,14 +176,14 @@ const TH = {
 };
 const TD = { border: '1px solid #e2e8f0', padding: '6px 10px', fontSize: 13, whiteSpace: 'nowrap', textAlign: 'center' };
 const C = { textAlign: 'center' };
-
+ 
 // warna bubble status
 const CHIP = {
     present: { solid: '#16a34a', tint: '#f0fdf4', text: '#15803d', border: '#86efac' },
     absent: { solid: '#ef4444', tint: '#fef2f2', text: '#b91c1c', border: '#fca5a5' },
     leave: { solid: '#3b82f6', tint: '#eff6ff', text: '#1d4ed8', border: '#93c5fd' },
 };
-
+ 
 /* ---------- gaya Excel (disamakan dengan tampilan) ---------- */
 const bd = (rgb) => ({
     top: { style: 'thin', color: { rgb } },
@@ -169,7 +191,7 @@ const bd = (rgb) => ({
     left: { style: 'thin', color: { rgb } },
     right: { style: 'thin', color: { rgb } },
 });
-
+ 
 const XS = {
     title: {
         font: { name: 'Calibri', sz: 14, bold: true, color: { rgb: '1E3A8A' } },
@@ -201,34 +223,34 @@ const XS = {
         border: bd('BFDBFE'),
     },
 };
-
+ 
 const XCHIP = {
     present: { tint: 'F0FDF4', text: '15803D' },
     absent: { tint: 'FEF2F2', text: 'B91C1C' },
     leave: { tint: 'EFF6FF', text: '1D4ED8' },
 };
-
+ 
 // z = format angka (mis. '0.0%'); xlsx-js-style membaca format dari style.numFmt
 const cell = (v, s, z) => (z ? { v, t: 'n', z, s: { ...s, numFmt: z } } : { v, s });
 const PCT = '0.0%';
-
+ 
 /* ---------- cetak PDF (rekap matriks ala lembar absensi) ---------- */
 const COMPANY = 'PT MITRA TRANSFORMASI DIGITAL';
 const COMPANY_ADDR = 'Jl. Tanjung Barat, Kec. Jagakarsa, Kota Adm. Jakarta Selatan, Prov. DKI Jakarta';
 const COMPANY_CONTACT = 'Telp: (021) 555-0192 · Email: hr@mitral.co.id';
 const PRINT_MAX_DAYS = 31;
 const CODE = { present: 'H', absent: 'A', leave: 'C' };
-
+ 
 const esc = (v) =>
     String(v ?? '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
-
+ 
 const buildPrintHtml = ({ records, range, department, logo }) => {
     const days = daysBetween(range.from, range.to);
-
+ 
     // 1 baris per karyawan, kolom per tanggal
     const people = new Map();
     records.forEach((r) => {
@@ -244,13 +266,13 @@ const buildPrintHtml = ({ records, range, department, logo }) => {
         people.get(key).byDate.set(r.date, r.status);
     });
     const list = [...people.values()].sort((a, b) => a.name.localeCompare(b.name, 'id'));
-
+ 
     const periodText = range.from === range.to ? fmtDate(range.from) : `${fmtDate(range.from)} s/d ${fmtDate(range.to)}`;
     const printed = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     const totalCols = 4 + days.length + 3;
-
+ 
     const dayHead = days.map((d) => `<th class="d${isWeekend(d) ? ' we' : ''}">${Number(d.slice(8))}</th>`).join('');
-
+ 
     const body = list.length
         ? list.map((p, i) => {
             const cnt = { present: 0, absent: 0, leave: 0 };
@@ -263,7 +285,7 @@ const buildPrintHtml = ({ records, range, department, logo }) => {
             return `<tr><td>${i + 1}</td><td class="l">${esc(p.name)}</td><td>${esc(p.nip)}</td><td class="l">${esc(p.dept)}</td>${cells}<td class="tt">${cnt.present}</td><td class="tt">${cnt.absent}</td><td class="tt">${cnt.leave}</td></tr>`;
         }).join('')
         : `<tr><td colspan="${totalCols}" style="padding:14px">Tidak ada data absensi.</td></tr>`;
-
+ 
     return `<!doctype html>
 <html lang="id"><head><meta charset="utf-8" />
 <title>Rekap Absensi ${esc(periodText)}</title>
@@ -315,7 +337,7 @@ const buildPrintHtml = ({ records, range, department, logo }) => {
       <tr><td>Tanggal Cetak</td><td>:</td><td>${esc(printed)}</td></tr>
     </tbody></table>
   </div>
-
+ 
   <table class="rekap">
     <colgroup>
       <col style="width:7mm" /><col style="width:40mm" /><col style="width:24mm" /><col style="width:28mm" />
@@ -332,11 +354,11 @@ const buildPrintHtml = ({ records, range, department, logo }) => {
     </thead>
     <tbody>${body}</tbody>
   </table>
-
-
+ 
+ 
 </body></html>`;
 };
-
+ 
 // Cetak lewat iframe tersembunyi -> dialog print -> "Simpan sebagai PDF"
 const printHtml = (html) =>
     new Promise((resolve) => {
@@ -347,7 +369,7 @@ const printHtml = (html) =>
         doc.open();
         doc.write(html);
         doc.close();
-
+ 
         const go = () => {
             iframe.contentWindow.focus();
             iframe.contentWindow.print();
@@ -364,7 +386,7 @@ const printHtml = (html) =>
             go();
         }
     });
-
+ 
 /* ---------- ikon kecil ---------- */
 const ICONS = {
     users: (
@@ -396,8 +418,20 @@ const ICONS = {
             <path d="M3 10h18M8 3v4M16 3v4" />
         </>
     ),
+    search: (
+        <>
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-3.5-3.5" />
+        </>
+    ),
+    eye: (
+        <>
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+            <circle cx="12" cy="12" r="3" />
+        </>
+    ),
 };
-
+ 
 function Icon({ name, size = 18 }) {
     return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -406,7 +440,41 @@ function Icon({ name, size = 18 }) {
         </svg>
     );
 }
-
+ 
+// Kolom tanggal dengan ikon kalender yang membuka date picker
+function DateField({ label, value, min, max, onChange }) {
+    const ref = useRef(null);
+    const open = () => {
+        const el = ref.current;
+        if (!el) return;
+        if (typeof el.showPicker === 'function') {
+            try {
+                el.showPicker();
+                return;
+            } catch {
+                /* fallback di bawah */
+            }
+        }
+        el.focus();
+    };
+    return (
+        <span className="att-date">
+            <button type="button" className="att-date__btn" onClick={open} aria-label={`Buka kalender ${label}`}>
+                <Icon name="calendar" size={18} />
+            </button>
+            <input
+                ref={ref}
+                type="date"
+                aria-label={label}
+                value={value}
+                min={min}
+                max={max}
+                onChange={(e) => e.target.value && onChange(e.target.value)}
+            />
+        </span>
+    );
+}
+ 
 /* ---------- halaman ---------- */
 export default function AttendanceReport() {
     // filter
@@ -419,7 +487,7 @@ export default function AttendanceReport() {
     const [exporting, setExporting] = useState(false);
     const [exportError, setExportError] = useState('');
     const [reloadKey, setReloadKey] = useState(0);
-
+ 
     // layar penuh "Lihat Data"
     const [emp, setEmp] = useState(null);
     const [mode, setMode] = useState('month');
@@ -427,10 +495,10 @@ export default function AttendanceReport() {
     const [detail, setDetail] = useState({ records: [], loading: false, failed: false });
     const [savingId, setSavingId] = useState(null);
     const [saveError, setSaveError] = useState('');
-
+ 
     // data utama
     const [result, setResult] = useState({ records: [], summary: null, departments: [], loading: true, failed: false });
-
+ 
     useEffect(() => {
         const id = setTimeout(() => {
             setSearch(searchInput.trim());
@@ -438,7 +506,7 @@ export default function AttendanceReport() {
         }, 400);
         return () => clearTimeout(id);
     }, [searchInput]);
-
+ 
     useEffect(() => {
         if (!emp) return undefined;
         const onKey = (e) => {
@@ -447,7 +515,7 @@ export default function AttendanceReport() {
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [emp, savingId]);
-
+ 
     // Kunci scroll halaman di belakang saat tampilan penuh terbuka
     useEffect(() => {
         if (!emp) return undefined;
@@ -457,12 +525,12 @@ export default function AttendanceReport() {
             document.body.style.overflow = prev;
         };
     }, [emp]);
-
+ 
     // Data utama
     useEffect(() => {
         let ignore = false;
         setResult((r) => ({ ...r, loading: true, failed: false }));
-
+ 
         fetchAll({
             from: range.from,
             to: range.to,
@@ -478,20 +546,20 @@ export default function AttendanceReport() {
                 if (ignore) return;
                 setResult((r) => ({ ...r, records: [], loading: false, failed: true }));
             });
-
+ 
         return () => {
             ignore = true;
         };
     }, [range.from, range.to, department, status, search, reloadKey]);
-
+ 
     const periodR = useMemo(() => periodRange(mode, periodValue), [mode, periodValue]);
-
+ 
     // Data detail karyawan sesuai jenis rekap + periode
     useEffect(() => {
         if (!emp) return undefined;
         let ignore = false;
         setDetail({ records: [], loading: true, failed: false });
-
+ 
         fetchAll({
             from: periodR.from,
             to: periodR.to,
@@ -506,25 +574,25 @@ export default function AttendanceReport() {
                 if (ignore) return;
                 setDetail({ records: [], loading: false, failed: true });
             });
-
+ 
         return () => {
             ignore = true;
         };
     }, [emp, periodR.from, periodR.to]);
-
+ 
     // Tabel utama: 1 baris per data absensi (tampilan awal)
     const totalRecords = result.records.length;
     const totalPages = Math.max(1, Math.ceil(totalRecords / PER_PAGE));
     const pageRows = result.records.slice((page - 1) * PER_PAGE, page * PER_PAGE);
     const startNo = (page - 1) * PER_PAGE;
-
+ 
     // Baris rekap harian (semua tanggal dalam periode)
     const dayRows = useMemo(() => {
         if (mode === 'year') return [];
         const byDate = new Map(detail.records.map((r) => [r.date, r]));
         return daysBetween(periodR.from, periodR.to).map((date) => ({ date, rec: byDate.get(date) }));
     }, [mode, detail.records, periodR]);
-
+ 
     // Baris rekap tahunan (12 bulan)
     const yearRows = useMemo(() => {
         if (mode !== 'year') return [];
@@ -534,14 +602,14 @@ export default function AttendanceReport() {
             return { month: monthName(m), ...countStatus(recs), total: recs.length };
         });
     }, [mode, detail.records, periodValue]);
-
+ 
     const totals = useMemo(() => countStatus(detail.records), [detail.records]);
-
+ 
     const changeFilter = (setter) => (value) => {
         setter(value);
         setPage(1);
     };
-
+ 
     // Buka layar penuh rekap untuk karyawan dari baris yang diklik
     const openDetail = (r) => {
         setEmp({
@@ -554,13 +622,13 @@ export default function AttendanceReport() {
         setPeriodValue(defaultPeriod('month'));
         setSaveError('');
     };
-
+ 
     const changeMode = (m) => {
         setMode(m);
         setPeriodValue(defaultPeriod(m));
         setSaveError('');
     };
-
+ 
     // Klik bubble status -> langsung tersimpan
     const setRowStatus = async (rec, next) => {
         if (next === rec.status || savingId !== null) return;
@@ -579,7 +647,7 @@ export default function AttendanceReport() {
             setSavingId(null);
         }
     };
-
+ 
     // Export seluruh data di tabel utama (dengan styling)
     const exportExcel = () => {
         setExporting(true);
@@ -615,7 +683,7 @@ export default function AttendanceReport() {
             setExporting(false);
         }
     };
-
+ 
     // Export rekap satu karyawan (sesuai periode di tampilan penuh)
     const exportEmployee = () => {
         const isYear = mode === 'year';
@@ -625,19 +693,19 @@ export default function AttendanceReport() {
         const merges = [];
         const blank = () => Array.from({ length: ncols }, () => cell('', undefined));
         const addMerge = (r, c1, c2) => merges.push({ s: { r, c: c1 }, e: { r, c: c2 } });
-
+ 
         // Kop
         const title = Array.from({ length: ncols }, () => cell('', XS.title));
         title[0] = cell('REKAP ABSENSI KARYAWAN', XS.title);
         rows.push(title);
         addMerge(rows.length - 1, 0, ncols - 1);
-
+ 
         const sub = blank();
         sub[0] = cell(`Periode ${periodTitle(mode, periodValue, periodR)}`, XS.subtitle);
         rows.push(sub);
         addMerge(rows.length - 1, 0, ncols - 1);
         rows.push(blank());
-
+ 
         // Identitas
         [['Nama', emp.name], ['NIP', emp.employee_id], ['Departemen', emp.department]].forEach(([k, v]) => {
             const r = blank();
@@ -648,7 +716,7 @@ export default function AttendanceReport() {
             addMerge(rows.length - 1, 2, ncols - 1);
         });
         rows.push(blank());
-
+ 
         if (isYear) {
             // Tabel tahunan
             rows.push(['No', 'Bulan', 'Hadir', 'Tidak hadir', 'Cuti', 'Total', '% Hadir'].map((h) => cell(h, XS.th)));
@@ -698,7 +766,7 @@ export default function AttendanceReport() {
                     cell(statusText, statusStyle),
                 ]);
             });
-
+ 
             // Ringkasan
             rows.push(blank());
             const sumHead = blank();
@@ -707,7 +775,7 @@ export default function AttendanceReport() {
             sumHead[2] = cell('', XS.th);
             rows.push(sumHead);
             addMerge(rows.length - 1, 0, 2);
-
+ 
             Object.entries(STATUS).forEach(([k, v]) => {
                 const r = blank();
                 r[0] = cell(v.label, XS.td('FFFFFF', XCHIP[k].text, true));
@@ -716,14 +784,14 @@ export default function AttendanceReport() {
                 rows.push(r);
                 addMerge(rows.length - 1, 0, 1);
             });
-
+ 
             const sumTot = blank();
             sumTot[0] = cell('TOTAL', XS.total);
             sumTot[1] = cell('', XS.total);
             sumTot[2] = cell(detail.records.length, XS.total);
             rows.push(sumTot);
             addMerge(rows.length - 1, 0, 1);
-
+ 
             const sumPct = blank();
             sumPct[0] = cell('Persentase Kehadiran', XS.total);
             sumPct[1] = cell('', XS.total);
@@ -731,17 +799,17 @@ export default function AttendanceReport() {
             rows.push(sumPct);
             addMerge(rows.length - 1, 0, 1);
         }
-
+ 
         const sheet = XLSX.utils.aoa_to_sheet(rows);
         sheet['!merges'] = merges;
         sheet['!cols'] = (isYear ? [6, 16, 12, 14, 10, 10, 12] : [6, 15, 12, 12, 12, 14, 24, 18]).map((wch) => ({ wch }));
         sheet['!rows'] = [{ hpt: 26 }, { hpt: 18 }];
-
+ 
         const book = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(book, sheet, 'Rekap');
         XLSX.writeFile(book, `rekap-${emp.employee_id}_${periodR.from}_${periodR.to}.xlsx`);
     };
-
+ 
     // Cetak rekap (tampilan awal) jadi PDF
     const printPdf = async () => {
         setExportError('');
@@ -759,73 +827,75 @@ export default function AttendanceReport() {
             })
         );
     };
-
+ 
     const { summary, loading, failed } = result;
-
+    const noData = loading || failed || result.records.length === 0;
+ 
     const stats = [
         { key: 'total', label: 'Total Karyawan', value: summary?.total_employees, icon: 'users', tone: 'indigo' },
         { key: 'present', label: 'Hadir', value: (summary?.present ?? 0) + (summary?.late ?? 0), icon: 'check', tone: 'green' },
         { key: 'absent', label: 'Tidak Hadir', value: summary?.absent, icon: 'x', tone: 'red' },
     ];
-
+ 
     return (
         <div className="att">
             <div className="att-grid">
                 {/* Kartu ringkasan */}
                 <section className="att-card att-statscard att-wide" aria-label="Ringkasan absensi">
-                    <div className="att-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                    <div className="att-stats att-stats--3">
                         {stats.map((s) => (
-                            <div
-                                key={s.key}
-                                className={`att-stat att-stat--${s.tone}`}
-                                style={s.tone === 'indigo' ? { background: '#e8eefa' } : undefined}
-                            >
-                                <span className="att-stat__icon" style={s.tone === 'indigo' ? { color: '#2563eb' } : undefined}>
-                                    <Icon name={s.icon} size={20} />
+                            <div key={s.key} className={`att-stat att-stat--${s.tone}`}>
+                                <span className="att-stat__icon">
+                                    <Icon name={s.icon} size={22} />
                                 </span>
                                 <div>
                                     <strong>{s.value ?? 0}</strong>
                                     <small>{s.label}</small>
                                 </div>
+                                <span className="att-stat__deco">
+                                    <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                        {ICONS.users}
+                                    </svg>
+                                </span>
                             </div>
                         ))}
                     </div>
                 </section>
-
+ 
                 {/* Filter + tabel */}
                 <section className="att-card att-wide">
                     <div className="att-head">
-                        <h4 className="att-title">
+                        <h2 className="att-title">
                             <Icon name="calendar" size={22} /> Data Absensi Karyawan
-                        </h4>
-                        <div className="att-filters" style={{ width: '100%' }}>
+                        </h2>
+                        {!loading && !failed && <span className="att-chip">{totalRecords} data</span>}
+                    </div>
+ 
+                    <div className="rep-toolbar">
+                        <div className="rep-filters">
                             <div className="att-range">
-                                <Icon name="calendar" size={16} />
-                                <input
-                                    type="date"
-                                    aria-label="Dari tanggal"
+                                <DateField
+                                    label="Dari tanggal"
                                     value={range.from}
                                     max={range.to}
-                                    onChange={(e) => {
-                                        if (!e.target.value) return;
-                                        setRange((r) => ({ ...r, from: e.target.value }));
+                                    onChange={(v) => {
+                                        setRange((r) => ({ ...r, from: v }));
                                         setPage(1);
                                     }}
                                 />
                                 <span>–</span>
-                                <input
-                                    type="date"
-                                    aria-label="Sampai tanggal"
+                                <DateField
+                                    label="Sampai tanggal"
                                     value={range.to}
                                     min={range.from}
-                                    onChange={(e) => {
-                                        if (!e.target.value) return;
-                                        setRange((r) => ({ ...r, to: e.target.value }));
+                                    onChange={(v) => {
+                                        setRange((r) => ({ ...r, to: v }));
                                         setPage(1);
                                     }}
                                 />
                             </div>
-
+ 
                             <select className="att-select" aria-label="Filter departemen" value={department}
                                 onChange={(e) => changeFilter(setDepartment)(e.target.value)}>
                                 <option value="">Semua Departemen</option>
@@ -833,7 +903,7 @@ export default function AttendanceReport() {
                                     <option key={d} value={d}>{d}</option>
                                 ))}
                             </select>
-
+ 
                             <select className="att-select" aria-label="Filter status" value={status}
                                 onChange={(e) => changeFilter(setStatus)(e.target.value)}>
                                 <option value="">Semua Status</option>
@@ -841,48 +911,45 @@ export default function AttendanceReport() {
                                     <option key={k} value={k}>{v.label}</option>
                                 ))}
                             </select>
-
-                            <input
-                                type="search"
-                                className="att-input"
-                                style={{ width: 220 }}
-                                placeholder="Cari nama / NIP..."
-                                aria-label="Cari nama atau NIP"
-                                value={searchInput}
-                                onChange={(e) => setSearchInput(e.target.value)}
-                            />
-
-                            {/* Grup tombol -> pojok kanan */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: 'auto' }}>
-                                <button
-                                    type="button"
-                                    className="att-btn att-btn--primary"
-                                    style={{ fontSize: 14, padding: '9px 16px', gap: 8 }}
-                                    disabled={exporting || loading || failed || result.records.length === 0}
-                                    onClick={exportExcel}
-                                >
-                                    <Icon name="download" size={16} />
-                                    {exporting ? 'Mengekspor...' : 'Export'}
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className="att-btn att-btn--soft"
-                                    style={{ fontSize: 14, padding: '9px 16px', gap: 8 }}
-                                    disabled={loading || failed || result.records.length === 0}
-                                    onClick={printPdf}
-                                >
-                                    <Icon name="print" size={16} />
-                                    Cetak PDF
-                                </button>
-                            </div>
+ 
+                            <label className="rep-search">
+                                <Icon name="search" size={16} />
+                                <input
+                                    type="search"
+                                    placeholder="Cari nama / NIP..."
+                                    aria-label="Cari nama atau NIP"
+                                    value={searchInput}
+                                    onChange={(e) => setSearchInput(e.target.value)}
+                                />
+                            </label>
+                        </div>
+ 
+                        <div className="rep-actions">
+                            <button
+                                type="button"
+                                className="att-btn att-btn--primary att-btn--sm"
+                                disabled={exporting || noData}
+                                onClick={exportExcel}
+                            >
+                                <Icon name="download" size={16} />
+                                {exporting ? 'Mengekspor...' : 'Export'}
+                            </button>
+                            <button
+                                type="button"
+                                className="att-btn att-btn--soft att-btn--sm"
+                                disabled={noData}
+                                onClick={printPdf}
+                            >
+                                <Icon name="print" size={16} />
+                                Cetak PDF
+                            </button>
                         </div>
                     </div>
-
+ 
                     {exportError && (
-                        <p className="att-error" role="alert" style={{ margin: '0 0 12px' }}>{exportError}</p>
+                        <p className="rep-error" role="alert">{exportError}</p>
                     )}
-
+ 
                     <div className="att-tablewrap">
                         <table className="att-table">
                             <thead>
@@ -892,8 +959,8 @@ export default function AttendanceReport() {
                                     <th>NIP</th>
                                     <th>Departemen</th>
                                     <th>Tanggal</th>
-                                    <th>Jam Masuk</th>
-                                    <th>Jam Pulang</th>
+                                    <th className="att-center">Jam Masuk</th>
+                                    <th className="att-center">Jam Pulang</th>
                                     <th className="att-center">Status</th>
                                     <th className="att-center">Aksi</th>
                                 </tr>
@@ -915,22 +982,27 @@ export default function AttendanceReport() {
                                         return (
                                             <tr key={r.id}>
                                                 <td>{startNo + i + 1}</td>
-                                                <td>{r.user_name ?? '-'}</td>
-                                                <td>{r.employee_id ?? '-'}</td>
+                                                <td>
+                                                    <div className="rep-person">
+                                                        <span className="rep-avatar">{initials(r.user_name)}</span>
+                                                        <span>{r.user_name ?? '-'}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="rep-muted">{r.employee_id ?? '-'}</td>
                                                 <td>{r.department ?? '-'}</td>
                                                 <td>{fmtDate(r.date)}</td>
-                                                <td>{formatTime(r.check_in)}</td>
-                                                <td>{formatTime(r.check_out)}</td>
+                                                <td className="att-center">{formatTime(r.check_in)}</td>
+                                                <td className="att-center">{formatTime(r.check_out)}</td>
                                                 <td className="att-center">
                                                     {st ? <span className={`att-badge ${st.cls}`}>{st.label}</span> : '-'}
                                                 </td>
                                                 <td className="att-center">
                                                     <button
                                                         type="button"
-                                                        className="att-btn att-btn--soft"
-                                                        style={{ fontSize: 13, padding: '6px 14px' }}
+                                                        className="att-btn att-btn--soft att-btn--xs"
                                                         onClick={() => openDetail(r)}
                                                     >
+                                                        <Icon name="eye" size={15} />
                                                         Lihat Data
                                                     </button>
                                                 </td>
