@@ -20,6 +20,13 @@ const DEPARTMENTS = [
     'Operations',
 ];
  
+// Alasan absen pulang setelah jam 17.00 (kosong kalau pulang normal)
+const checkoutNote = (r) => {
+    if (r.checkout_reason === 'forgot') return 'Lupa absen pulang';
+    if (r.checkout_reason === 'work_extension') return `Work Extension: ${r.work_extension_note ?? '-'}`;
+    return '-';
+};
+
 const STATUS = {
     present: { label: 'Hadir', cls: 'att-badge--present' },
     absent: { label: 'Tidak hadir', cls: 'att-badge--absent' },
@@ -653,7 +660,7 @@ export default function AttendanceReport() {
         setExporting(true);
         setExportError('');
         try {
-            const head = ['No', 'Nama', 'NIP', 'Departemen', 'Tanggal', 'Jam Masuk', 'Jam Pulang', 'Status'];
+            const head = ['No', 'Nama', 'NIP', 'Departemen', 'Tanggal', 'Jam Masuk', 'Jam Pulang', 'Status', 'Keterangan'];
             const data = [
                 head.map((h) => cell(h, XS.th)),
                 ...result.records.map((r, i) => {
@@ -668,11 +675,12 @@ export default function AttendanceReport() {
                         cell(formatTime(r.check_in), t),
                         cell(formatTime(r.check_out), t),
                         cell(STATUS[r.status]?.label ?? r.status ?? '-', XS.td(bg, XCHIP[r.status]?.text, true)),
+                        cell(checkoutNote(r), { ...t, alignment: { horizontal: 'left', vertical: 'center', wrapText: true } }),
                     ];
                 }),
             ];
             const sheet = XLSX.utils.aoa_to_sheet(data);
-            sheet['!cols'] = [6, 26, 16, 18, 14, 12, 12, 14].map((wch) => ({ wch }));
+            sheet['!cols'] = [6, 26, 16, 18, 14, 12, 12, 14, 40].map((wch) => ({ wch }));
             sheet['!rows'] = [{ hpt: 22 }];
             const book = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(book, sheet, 'Rekap Absensi');
@@ -962,20 +970,21 @@ export default function AttendanceReport() {
                                     <th className="att-center">Jam Masuk</th>
                                     <th className="att-center">Jam Pulang</th>
                                     <th className="att-center">Status</th>
+                                    <th>Keterangan</th>
                                     <th className="att-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan={9} className="att-empty">Memuat...</td></tr>
+                                    <tr><td colSpan={10} className="att-empty">Memuat...</td></tr>
                                 ) : failed ? (
                                     <tr>
-                                        <td colSpan={9} className="att-empty">
+                                        <td colSpan={10} className="att-empty">
                                             Data belum bisa dimuat. Cek endpoint {ENDPOINT} dan pastikan login sebagai HR.
                                         </td>
                                     </tr>
                                 ) : pageRows.length === 0 ? (
-                                    <tr><td colSpan={9} className="att-empty">Tidak ada data absensi untuk filter ini.</td></tr>
+                                    <tr><td colSpan={10} className="att-empty">Tidak ada data absensi untuk filter ini.</td></tr>
                                 ) : (
                                     pageRows.map((r, i) => {
                                         const st = STATUS[r.status];
@@ -996,6 +1005,7 @@ export default function AttendanceReport() {
                                                 <td className="att-center">
                                                     {st ? <span className={`att-badge ${st.cls}`}>{st.label}</span> : '-'}
                                                 </td>
+                                                <td className="rep-muted">{checkoutNote(r)}</td>
                                                 <td className="att-center">
                                                     <button
                                                         type="button"

@@ -20,6 +20,19 @@ const WORK_LABEL = { onsite: 'Onsite', wfh: 'WFH', remote: 'Remote' };
 // Jam masuk kantor, dipakai untuk menghitung keterlambatan
 const WORK_START = '08:00';
 
+// Lewat jam ini, absen pulang wajib disertai alasan (harus sama dengan backend)
+const CHECK_OUT_LIMIT_HOUR = 17;
+
+const CHECKOUT_REASONS = [
+    { value: 'forgot', label: 'Lupa absen pulang' },
+    { value: 'work_extension', label: 'Work Extension' },
+];
+
+// true kalau waktu sekarang sudah lewat 17:00:00
+const isPastLimit = (d) =>
+    d.getHours() > CHECK_OUT_LIMIT_HOUR ||
+    (d.getHours() === CHECK_OUT_LIMIT_HOUR && (d.getMinutes() > 0 || d.getSeconds() > 0));
+
 const STATUS = {
     present: { label: 'Hadir', cls: 'att-badge--present' },
     absent: { label: 'Tidak hadir', cls: 'att-badge--absent' },
@@ -255,6 +268,8 @@ export default function Attendance() {
     const [message, setMessage] = useState(null); // { type, text, retry? }
     const [errors, setErrors] = useState({});
     const [form, setForm] = useState({ work_type: 'onsite', location: '' });
+    const [showReason, setShowReason] = useState(false);
+    const [reason, setReason] = useState({ checkout_reason: '', work_extension_note: '' });
 
     const [range, setRange] = useState(monthRange);
     const [statusFilter, setStatusFilter] = useState('all');
@@ -309,17 +324,21 @@ export default function Attendance() {
             const { data } = await request();
             setMessage({ type: 'success', text: data.message });
             await Promise.all([fetchToday(), fetchHistory()]);
+            return true;
         } catch (err) {
             const res = err.response;
             if (res?.status === 422) {
                 const flat = {};
                 Object.entries(res.data.errors ?? {}).forEach(([k, v]) => (flat[k] = v[0]));
                 setErrors(flat);
+                // Server minta alasan (mis. jam di perangkat belum lewat 17:00) -> buka form alasan
+                if (flat.checkout_reason) setShowReason(true);
             } else if (res?.status === 401) {
                 setMessage({ type: 'error', text: 'Sesi login berakhir. Silakan login ulang.' });
             } else {
                 setMessage({ type: 'error', text: res?.data?.message ?? 'Terjadi kesalahan. Coba lagi.' });
             }
+            return false;
         } finally {
             setSubmitting(false);
         }
@@ -332,7 +351,32 @@ export default function Attendance() {
                 location: form.work_type === 'onsite' ? form.location : null,
             }),
         );
-    const checkOut = () => run(() => api.post(ENDPOINT.checkOut));
+    // Sebelum 17:00 langsung absen pulang, setelah 17:00 tampilkan form alasan dulu
+    const checkOut = () => {
+        if (isPastLimit(new Date())) {
+            setErrors({});
+            setReason({ checkout_reason: '', work_extension_note: '' });
+            setShowReason(true);
+            return;
+        }
+        run(() => api.post(ENDPOINT.checkOut));
+    };
+
+    const closeReason = () => {
+        if (submitting) return;
+        setShowReason(false);
+        setErrors({});
+    };
+
+    const submitReason = async () => {
+        const ok = await run(() =>
+            api.post(ENDPOINT.checkOut, {
+                checkout_reason: reason.checkout_reason || null,
+                work_extension_note: reason.checkout_reason === 'work_extension' ? reason.work_extension_note : null,
+            }),
+        );
+        if (ok) setShowReason(false);
+    };
 
     const hasIn = !!attendance?.check_in;
     const hasOut = !!attendance?.check_out;
@@ -610,6 +654,14 @@ export default function Attendance() {
                                                     <span className={note.late ? 'att-note--late' : 'att-note--ok'}>
                                                         {note.text}
                                                     </span>
+                                                    {r.checkout_reason === 'forgot' && (
+                                                        <div className="att-extra">Lupa absen pulang</div>
+                                                    )}
+                                                    {r.checkout_reason === 'work_extension' && (
+                                                        <div className="att-extra">
+                                                            <strong>Work Extension:</strong> {r.work_extension_note}
+                                                        </div>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );
@@ -620,6 +672,69 @@ export default function Attendance() {
                     </div>
                 </section>
             </div>
+
+            {/* Form alasan absen pulang setelah jam 17.00 */}
+            {showReason && (
+                <div className="att-modal" role="dialog" aria-modal="true" aria-labelledby="att-modal-title">
+                    <div className="att-modal__backdrop" onClick={closeReason} />
+                    <div className="att-modal__box">
+                        <h3 id="att-modal-title" className="att-modal__title">
+                            Absen Pulang Setelah Jam 17.00
+                        </h3>
+                        <p className="att-modal__desc">Pilih alasan kenapa kamu absen pulang setelah jam 17.00.</p>
+
+                        <div className="att-reasons" role="radiogroup" aria-label="Alasan absen pulang">
+                            {CHECKOUT_REASONS.map((r) => (
+                                <label key={r.value} className="att-reason">
+                                    <input
+                                        type="radio"
+                                        name="checkout_reason"
+                                        value={r.value}
+                                        checked={reason.checkout_reason === r.value}
+                                        onChange={(e) => setReason((x) => ({ ...x, checkout_reason: e.target.value }))}
+                                    />
+                                    <span>{r.label}</span>
+                                </label>
+                            ))}
+                        </div>
+                        {errors.checkout_reason && <span className="att-error">{errors.checkout_reason}</span>}
+
+                        {reason.checkout_reason === 'work_extension' && (
+                            <>
+                                <label className="att-modal__label" htmlFor="att-note">
+                                    Kegiatan yang dikerjakan
+                                </label>
+                                <textarea
+                                    id="att-note"
+                                    className="att-textarea"
+                                    rows={4}
+                                    maxLength={1000}
+                                    placeholder="Contoh: Menyelesaikan laporan bulanan"
+                                    value={reason.work_extension_note}
+                                    onChange={(e) => setReason((x) => ({ ...x, work_extension_note: e.target.value }))}
+                                />
+                                {errors.work_extension_note && (
+                                    <span className="att-error">{errors.work_extension_note}</span>
+                                )}
+                            </>
+                        )}
+
+                        <div className="att-modal__actions">
+                            <button type="button" className="att-btn att-btn--soft" onClick={closeReason} disabled={submitting}>
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                className="att-btn att-btn--primary"
+                                onClick={submitReason}
+                                disabled={submitting || !reason.checkout_reason}
+                            >
+                                {submitting ? 'Menyimpan...' : 'Kirim & Absen Pulang'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

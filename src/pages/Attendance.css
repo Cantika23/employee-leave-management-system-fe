@@ -946,3 +946,95 @@
     .rep-actions { width: 100%; margin-left: 0; }
     .rep-actions .att-btn { flex: 1; }
 }
+
+/* ---------- Form alasan absen pulang ---------- */
+.att-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+}
+.att-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(18, 38, 63, 0.45);
+}
+.att-modal__box {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 24px;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 20px 50px rgba(18, 38, 63, 0.25);
+}
+.att-modal__title {
+    margin: 0;
+    font-size: 18px;
+    color: var(--ink);
+}
+.att-modal__desc {
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+}
+.att-modal__label {
+    margin-top: 4px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink);
+}
+.att-reasons {
+    display: grid;
+    gap: 10px;
+}
+.att-reason {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    cursor: pointer;
+}
+.att-reason:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+.att-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    resize: vertical;
+}
+.att-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+.att-modal__actions {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+/* Alasan absen pulang di kolom Keterangan */
+.att-extra {
+    margin-top: 4px;
+    font-size: 12.5px;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+.att-extra strong {
+    color: var(--ink);
+}
